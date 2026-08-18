@@ -23,7 +23,7 @@ Route::post('/remove-part', [BuilderController::class, 'removePart'])->name('bui
 */
 Route::get('/dashboard', function () {
     // You can redirect this back to the builder, or keep it as a user profile page
-    return redirect('/'); 
+    return redirect('/');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -33,5 +33,21 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::post('/auto-build', [BuilderController::class, 'generateAutoBuild'])->name('builder.autobuild');
+
+Route::post('/builder/save', [App\Http\Controllers\BuilderController::class, 'saveBuild'])
+    ->name('builder.save')
+    ->middleware('auth');
+
+Route::post('/builder/load/{id}', [App\Http\Controllers\BuilderController::class, 'loadBuild'])
+->name('builder.load')
+->middleware('auth');
+
+Route::get('/builder/compare', [App\Http\Controllers\BuilderController::class, 'compareView'])
+    ->name('builder.compare')
+    ->middleware('auth');
+
+Route::post('/builder/delete/{id}', [App\Http\Controllers\BuilderController::class, 'deleteBuild'])
+    ->name('builder.delete')
+    ->middleware('auth');
 
 require __DIR__.'/auth.php';

@@ -18,7 +18,7 @@ class CreateRamsTable extends Migration
             $table->string('name', 500);
             $table->string('manufacturer');
             $table->string('type'); // e.g., DDR4, DDR5
-            $table->integer('capacity_gb')->nullable();
+            $table->integer('capacity')->nullable();
             $table->integer('speed')->nullable();
             $table->integer('score')->default(60); // Mock benchmark
             $table->decimal('price', 8, 2)->default(0.00);

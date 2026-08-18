@@ -210,3 +210,155 @@ button, .btn-primary, .btn-secondary {
     margin-top: 0.25rem; 
     display: block;
 }
+
+/* Select Dropdown & Number Input Styling */
+.form-input[type="number"]::-webkit-inner-spin-button,
+.form-input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+select.form-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem top 50%;
+    background-size: 0.65rem auto;
+    padding-right: 2.5rem;
+}
+select.form-input option {
+    background-color: var(--surface);
+    color: var(--text-main);
+}
+
+/* Laravel Default Pagination Fix */
+nav[role="navigation"] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1rem;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Shrink the giant arrows */
+nav[role="navigation"] svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    vertical-align: middle;
+}
+
+/* Hide the "Showing 1 to 24 of X results" text on small screens */
+nav[role="navigation"] > div:first-child {
+    display: none;
+}
+
+nav[role="navigation"] > div:last-child {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+}
+
+/* Style the pagination links and containers */
+nav[role="navigation"] a, 
+nav[role="navigation"] span[aria-current] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.75rem;
+    margin: 0 0.2rem;
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--text-main);
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+nav[role="navigation"] a:hover {
+    background: var(--surface-hover);
+    border-color: var(--text-muted);
+}
+
+/* Style the active page number */
+nav[role="navigation"] span[aria-current] {
+    background: var(--accent-blue);
+    color: #ffffff;
+    border-color: var(--accent-blue);
+}
+
+/* Hide unneeded Tailwind utilities injected by Laravel */
+.hidden { display: none; }
+
+/* Component Specs in Matrix Comparison */
+.spec-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.spec-badge {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.spec-badge strong {
+    color: var(--text-main);
+    display: inline;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Dynamic Score Breakdown Tooltips */
+.info-tooltip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid var(--text-muted);
+    font-size: 10px;
+    font-weight: bold;
+    cursor: help;
+    color: var(--text-muted);
+    margin-left: 6px;
+    transition: all 0.2s ease;
+}
+
+.info-tooltip:hover {
+    color: var(--accent-blue);
+    border-color: var(--accent-blue);
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.info-tooltip .tooltip-content {
+    position: absolute;
+    bottom: 140%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 260px;
+    background: #111827;
+    border: 1px solid var(--border-color);
+    padding: 14px;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+    font-size: 12px;
+    color: var(--text-main);
+    text-transform: none;
+    font-weight: normal;
+    z-index: 100;
+    display: none;
+    text-align: left;
+}
+
+.info-tooltip:hover .tooltip-content {
+    display: block !important;
+}

@@ -21,6 +21,7 @@ class CreateCpusTable extends Migration
         $table->string('socket');
         $table->integer('tdp')->nullable();
         $table->decimal('base_clock', 8, 2)->nullable();
+        $table->decimal('boost_clock', 8, 2)->nullable();
         $table->decimal('price', 8, 2)->default(0.00);
         $table->timestamps();
         });

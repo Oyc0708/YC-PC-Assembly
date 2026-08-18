@@ -14,13 +14,18 @@ class CreateMotherboardsTable extends Migration
     public function up()
     {
         Schema::create('motherboards', function (Blueprint $table) {
+            // Keep your existing ID and UUID setup...
             $table->uuid('id')->primary();
-            $table->string('name', 500);
-            $table->string('manufacturer');
-            $table->string('socket');
-            $table->string('ram_type'); // Matches RAM type (DDR4/DDR5)
+            $table->string('name');
+            $table->string('manufacturer')->nullable();
+            $table->string('socket')->nullable();
+            $table->string('ram_type')->nullable();
+            
+            $table->integer('max_ram')->nullable();
+            $table->integer('ram_slots')->nullable();
+            
             $table->string('form_factor')->nullable();
-            $table->decimal('price', 8, 2)->default(0.00);
+            $table->decimal('price', 10, 2)->nullable();
             $table->timestamps();
         });
     }

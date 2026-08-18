@@ -18,6 +18,8 @@ class CreateGpusTable extends Migration
             $table->string('name', 500);
             $table->string('manufacturer');
             $table->integer('vram_gb')->nullable();
+            $table->integer('memory')->nullable(); // VRAM
+            $table->integer('clock_speed')->nullable(); // Core clock
             $table->integer('tdp')->nullable();
             $table->integer('length_mm')->nullable();
             $table->integer('score')->default(70); // Mock benchmark

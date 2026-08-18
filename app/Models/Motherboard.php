@@ -17,6 +17,8 @@ class Motherboard extends Model
         'name',
         'manufacturer',
         'socket',
+        'max_ram',
+        'ram_slots',
         'ram_type',
         'form_factor',
         'price',
