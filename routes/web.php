@@ -3,6 +3,8 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\BuilderController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
@@ -49,5 +51,34 @@ Route::get('/builder/compare', [App\Http\Controllers\BuilderController::class, '
 Route::post('/builder/delete/{id}', [App\Http\Controllers\BuilderController::class, 'deleteBuild'])
     ->name('builder.delete')
     ->middleware('auth');
+
+Route::get('/builder', [BuilderController::class, 'index'])->name('builder.index');
+
+Route::get('/', function () {
+    // Check if we have already welcomed the user during this session
+    if (!session()->has('has_been_welcomed')) {
+        session(['has_been_welcomed' => true]);
+        
+        // Dynamically grab the user's name or default to 'User'
+        $name = auth()->check() ? auth()->user()->name : 'User';
+        session()->flash('welcome_toast', "Welcome back, {$name}!");
+    }
+
+    return view('home');
+})->name('home');
+
+Route::post('/admin/force-price-update', function (Request $request) {
+    // SECURITY: Ensure only authenticated users/admins can trigger this
+    if (!auth()->check()) {
+        abort(403, 'Unauthorized action.');
+    }
+
+    // Programmatically run the fetcher command
+    Artisan::call('prices:fetch');
+
+    return back()->with('success', 'Market prices from all 5 Malaysian vendors have been synced successfully!');
+})->name('admin.sync_prices');
+
+Route::post('/builder/clear', [App\Http\Controllers\BuilderController::class, 'clearBuild'])->name('builder.clear');
 
 require __DIR__.'/auth.php';

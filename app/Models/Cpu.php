@@ -11,6 +11,11 @@ class Cpu extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'id', 'name', 'manufacturer', 'cores', 'socket', 'tdp', 'base_clock', 'price'
+        'id', 'name', 'manufacturer', 'cores', 'socket', 'tdp', 'base_clock',
     ];
+
+    public function prices()
+    {
+        return $this->morphMany(\App\Models\ComponentPrice::class, 'component');
+    }
 }

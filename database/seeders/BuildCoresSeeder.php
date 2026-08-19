@@ -65,9 +65,8 @@ class BuildCoresSeeder extends Seeder
 
             $this->saveComponent(Cpu::class, $this->getFullName($data), [
                 'manufacturer' => $data['metadata']['manufacturer'] ?? 'Unknown',
-                'cores'        => $data['cores']['performance'] ?? $data['cores']['total'] ?? 4,
+                'cores'        => $data['cores']['total'],
                 'socket'       => $data['socket'] ?? 'Unknown',
-                // FIXED: Look inside the 'specifications' array for TDP
                 'tdp'          => $data['specifications']['tdp'] ?? 65,
                 'base_clock'   => $data['clocks']['performance']['base'] ?? 3.0,
                 'boost_clock'  => $data['clocks']['performance']['boost'] ?? $data['clocks']['performance']['base'] ?? 3.5,
@@ -89,11 +88,9 @@ class BuildCoresSeeder extends Seeder
 
             $this->saveComponent(Gpu::class, $this->getFullName($data), [
                 'manufacturer' => $data['metadata']['manufacturer'] ?? 'Unknown',
-                // FIXED: Mapping directly to the root level keys
                 'length_mm'    => $data['length'] ?? 240,
                 'tdp'          => $data['tdp'] ?? 150,
                 'memory'       => $data['memory'] ?? 8,
-                // We'll prioritize the boost clock for performance estimation, falling back to base
                 'clock_speed'  => $data['core_boost_clock'] ?? $data['core_base_clock'] ?? 1500,
                 'price'        => rand(800, 6000) // Placeholder
             ]);
@@ -160,10 +157,7 @@ class BuildCoresSeeder extends Seeder
 
             $this->saveComponent(Cooler::class, $this->getFullName($data), [
                 'manufacturer' => $data['metadata']['manufacturer'] ?? 'Unknown',
-                // Many coolers in this DB lack a max_tdp key, so the 150W fallback is vital here
-                'max_tdp'      => $data['max_tdp'] ?? 150,
-                // Optional: Capturing sockets as a JSON string for future ValidationEngine checks
-                // 'sockets'   => isset($data['cpu_sockets']) ? json_encode($data['cpu_sockets']) : json_encode([]),
+                'max_tdp'      => $data['max_tdp'] ?? random_int(150, 1000),
                 'price'        => rand(100, 600)
             ]);
             $count++;

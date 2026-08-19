@@ -18,6 +18,10 @@ class Psu extends Model
         'manufacturer',
         'wattage',
         'efficiency',
-        'price',
     ];
+
+    public function prices()
+    {
+        return $this->morphMany(\App\Models\ComponentPrice::class, 'component');
+    }
 }

@@ -57,12 +57,37 @@ class BuilderController extends Controller
 
         $model = $this->modelMap[$category];
         $query = $model::query();
+        $currentBuild = session('current_build', []);
 
+        // -------------------------------------------------------------
+        // 1. SMART COMPATIBILITY FILTER TOGGLE
+        // -------------------------------------------------------------
+        $compatibilityFilter = $request->boolean('compatibility_filter', true);
+        
+        if ($compatibilityFilter && !empty($currentBuild)) {
+            if ($category === 'cpu' && isset($currentBuild['mobo'])) {
+                $query->where('socket', $currentBuild['mobo']->socket);
+            } elseif ($category === 'mobo' && isset($currentBuild['cpu'])) {
+                $query->where('socket', $currentBuild['cpu']->socket);
+            } elseif ($category === 'ram' && isset($currentBuild['mobo'])) {
+                $query->where('type', $currentBuild['mobo']->ram_type);
+            } elseif ($category === 'case' && isset($currentBuild['gpu'])) {
+                $gpuLen = (int)($currentBuild['gpu']->length_mm ?? 0);
+                $query->where('max_gpu_length_mm', '>=', $gpuLen);
+            } elseif ($category === 'psu' && (isset($currentBuild['cpu']) || isset($currentBuild['gpu']))) {
+                $estWatts = ((int)($currentBuild['cpu']->tdp ?? 65) + (int)($currentBuild['gpu']->tdp ?? 150) + 50) * 1.25;
+                $query->where('wattage', '>=', $estWatts);
+            }
+        }
+
+        // -------------------------------------------------------------
+        // 2. TEXT SEARCH & PRICE RANGES
+        // -------------------------------------------------------------
         if ($request->filled('search')) {
             $searchTerm = '%' . $request->search . '%';
             $query->where(function($q) use ($searchTerm) {
                 $q->where('name', 'like', $searchTerm)
-                  ->orWhere('manufacturer', 'like', $searchTerm);
+                ->orWhere('manufacturer', 'like', $searchTerm);
             });
         }
 
@@ -73,30 +98,82 @@ class BuilderController extends Controller
             $query->whereRaw('CAST(price AS DECIMAL(10,2)) <= ?', [$request->max_price]);
         }
 
-        if (in_array($category, ['cpu', 'mobo']) && $request->filled('socket')) {
-            $query->where('socket', $request->socket);
+        // -------------------------------------------------------------
+        // 3. MULTI-SELECT CHECKBOX FILTERS
+        // -------------------------------------------------------------
+        if ($request->filled('manufacturers')) {
+            $query->whereIn('manufacturer', (array) $request->manufacturers);
         }
 
-        if (in_array($category, ['ram', 'mobo']) && $request->filled('ram_type')) {
+        if (in_array($category, ['cpu', 'mobo']) && $request->filled('sockets')) {
+            $query->whereIn('socket', (array) $request->sockets);
+        }
+
+        if (in_array($category, ['ram', 'mobo']) && $request->filled('ram_types')) {
             $column = $category === 'ram' ? 'type' : 'ram_type';
-            $query->where($column, $request->ram_type);
+            $query->whereIn($column, (array) $request->ram_types);
         }
 
-        $parts = $query->orderBy('name')->paginate(24)->withQueryString();
+        if (in_array($category, ['mobo', 'case']) && $request->filled('form_factors')) {
+            $query->whereIn('form_factor', (array) $request->form_factors);
+        }
 
-        $sockets = [];
-        $ramTypes = [];
-        
+        // -------------------------------------------------------------
+        // 4. NUMERIC SPECIFICATION FILTERS
+        // -------------------------------------------------------------
+        if ($category === 'cpu') {
+            if ($request->filled('min_cores')) $query->where('cores', '>=', (int)$request->min_cores);
+            if ($request->filled('max_cores')) $query->where('cores', '<=', (int)$request->max_cores);
+            if ($request->filled('max_tdp')) $query->where('tdp', '<=', (int)$request->max_tdp);
+        }
+
+        if ($category === 'gpu') {
+            if ($request->filled('min_memory')) $query->where('memory', '>=', (int)$request->min_memory);
+            if ($request->filled('max_gpu_len')) $query->where('length_mm', '<=', (int)$request->max_gpu_len);
+        }
+
+        if ($category === 'psu') {
+            if ($request->filled('min_wattage')) $query->where('wattage', '>=', (int)$request->min_wattage);
+        }
+
+        // -------------------------------------------------------------
+        // 5. EXTRACT DYNAMIC SIDEBAR OPTIONS DIRECTLY FROM DATABASE
+        // -------------------------------------------------------------
+        $filterOptions = [
+            'manufacturers' => $model::whereNotNull('manufacturer')->distinct()->orderBy('manufacturer')->pluck('manufacturer'),
+            'price_min'     => (float) ($model::min('price') ?? 0),
+            'price_max'     => (float) ($model::max('price') ?? 5000),
+        ];
+
         if (in_array($category, ['cpu', 'mobo'])) {
-            $sockets = $model::select('socket')->distinct()->whereNotNull('socket')->orderBy('socket')->pluck('socket');
+            $filterOptions['sockets'] = $model::whereNotNull('socket')->distinct()->orderBy('socket')->pluck('socket');
         }
-        
         if (in_array($category, ['ram', 'mobo'])) {
-            $column = $category === 'ram' ? 'type' : 'ram_type';
-            $ramTypes = $model::select($column)->distinct()->whereNotNull($column)->orderBy($column)->pluck($column);
+            $col = $category === 'ram' ? 'type' : 'ram_type';
+            $filterOptions['ram_types'] = $model::whereNotNull($col)->distinct()->orderBy($col)->pluck($col);
+        }
+        if (in_array($category, ['mobo', 'case'])) {
+            $filterOptions['form_factors'] = $model::whereNotNull('form_factor')->distinct()->orderBy('form_factor')->pluck('form_factor');
         }
 
-        return view('builder.select', compact('parts', 'category', 'sockets', 'ramTypes'));
+        // UPDATED: Eager load the component prices here!
+        $parts = $query->with('prices')->orderBy('price', 'asc')->paginate(20)->withQueryString();
+
+        // Calculate active build summary metrics
+        $selectedCount = count(array_filter($currentBuild));
+        $totalCost = collect($currentBuild)->filter()->sum('price');
+        $estWattage = (int)($currentBuild['cpu']->tdp ?? 65) + (int)($currentBuild['gpu']->tdp ?? 150) + 50;
+
+        return view('builder.select', compact(
+            'parts',
+            'category',
+            'filterOptions',
+            'compatibilityFilter',
+            'currentBuild',
+            'selectedCount',
+            'totalCost',
+            'estWattage'
+        ));
     }
 
     // 3. Add a Part to the Session
@@ -164,14 +241,14 @@ class BuilderController extends Controller
             // ==============================================================
             $cpuBudget = $maxBudget * $alloc['cpu'] * 1.2;
             $cpu = Cpu::whereRaw('CAST(price AS DECIMAL(10,2)) <= ?', [$cpuBudget])
-                      ->get()
-                      ->sortByDesc(function ($c) {
+                    ->get()
+                    ->sortByDesc(function ($c) {
                           // Safely defaults to 0 if columns don't exist
-                          $cores = (int) ($c->cores ?? 2);
-                          $clock = (float) ($c->boost_clock ?? $c->base_clock ?? 3.0);
+                        $cores = (int) ($c->cores ?? 2);
+                        $clock = (float) ($c->boost_clock ?? $c->base_clock ?? 3.0);
                           return ($cores * 100) + $clock;
-                      })->first();
-                      
+                    })->first();
+                    
             if (!$cpu) $cpu = Cpu::orderByRaw('CAST(price AS DECIMAL(10,2)) ASC')->first();
             if (!$cpu) throw new \Exception('No CPUs found in the database.');
             
@@ -237,13 +314,13 @@ class BuilderController extends Controller
             // ==============================================================
             $gpuBudget = $maxBudget * $alloc['gpu'] * 1.3;
             $gpu = Gpu::whereRaw('CAST(price AS DECIMAL(10,2)) <= ?', [$gpuBudget])
-                      ->get()
-                      ->sortByDesc(function ($g) {
-                          $vram = (int) ($g->memory ?? 2);
-                          $clock = (int) ($g->clock_speed ?? 1000);
+                    ->get()
+                    ->sortByDesc(function ($g) {
+                        $vram = (int) ($g->memory ?? 2);
+                        $clock = (int) ($g->clock_speed ?? 1000);
                           return ($vram * 1000) + $clock;
-                      })->first();
-                      
+                    })->first();
+                    
             if (!$gpu) $gpu = Gpu::orderByRaw('CAST(price AS DECIMAL(10,2)) ASC')->first();
             
             if ($gpu) {
@@ -284,14 +361,14 @@ class BuilderController extends Controller
             $psuBudget = $maxBudget * $alloc['psu'] * 1.5;
             $reqWattage = $estWattage * 1.25; // 25% safety overhead
             $psu = Psu::whereRaw('CAST(price AS DECIMAL(10,2)) <= ?', [$psuBudget])
-                      ->get()
-                      ->filter(function ($p) use ($reqWattage) {
-                          return (int)($p->wattage ?? 0) >= $reqWattage;
-                      })
-                      ->sortByDesc(function ($p) {
-                          return (int)($p->wattage ?? 0);
-                      })->first();
-                      
+                    ->get()
+                    ->filter(function ($p) use ($reqWattage) {
+                        return (int)($p->wattage ?? 0) >= $reqWattage;
+                    })
+                    ->sortByDesc(function ($p) {
+                        return (int)($p->wattage ?? 0);
+                    })->first();
+                    
             if (!$psu) $psu = Psu::get()->filter(function($p) use ($reqWattage) { return (int)($p->wattage ?? 0) >= $reqWattage; })->sortBy('price')->first();
             if (!$psu) throw new \Exception("No PSU found supplying the required {$reqWattage}W.");
             
@@ -388,20 +465,36 @@ class BuilderController extends Controller
         
         $relations = ['cpu', 'cooler', 'motherboard', 'ram', 'gpu', 'psu', 'pcCase'];
 
-        if ($request->has('build1') && $request->build1 != '') {
+        // Safely check and load Build 1
+        if ($request->filled('build1')) {
             $build1 = Build::with($relations)->where('user_id', auth()->id())->find($request->build1);
             if ($build1) {
-                // Dynamically recalculate to fetch the breakdown arrays
-                $parts1 = ['cpu' => $build1->cpu, 'gpu' => $build1->gpu, 'ram' => $build1->ram, 'mobo' => $build1->motherboard, 'cooler' => $build1->cooler, 'psu' => $build1->psu, 'case' => $build1->pcCase];
+                $parts1 = [
+                    'cpu' => $build1->cpu,
+                    'gpu' => $build1->gpu,
+                    'ram' => $build1->ram,
+                    'mobo' => $build1->motherboard,
+                    'cooler' => $build1->cooler,
+                    'psu' => $build1->psu,
+                    'case' => $build1->pcCase
+                ];
                 $scores1 = $this->validationEngine->calculateScores($parts1);
             }
         }
         
-        if ($request->has('build2') && $request->build2 != '') {
+        // Safely check and load Build 2
+        if ($request->filled('build2')) {
             $build2 = Build::with($relations)->where('user_id', auth()->id())->find($request->build2);
             if ($build2) {
-                // Dynamically recalculate to fetch the breakdown arrays
-                $parts2 = ['cpu' => $build2->cpu, 'gpu' => $build2->gpu, 'ram' => $build2->ram, 'mobo' => $build2->motherboard, 'cooler' => $build2->cooler, 'psu' => $build2->psu, 'case' => $build2->pcCase];
+                $parts2 = [
+                    'cpu' => $build2->cpu,
+                    'gpu' => $build2->gpu,
+                    'ram' => $build2->ram,
+                    'mobo' => $build2->motherboard,
+                    'cooler' => $build2->cooler,
+                    'psu' => $build2->psu,
+                    'case' => $build2->pcCase
+                ];
                 $scores2 = $this->validationEngine->calculateScores($parts2);
             }
         }
@@ -421,5 +514,12 @@ class BuilderController extends Controller
         return redirect()->route('builder.index')->with('success', "Deleted '{$buildName}' from your workspace.");
     }
 
-    
+    public function clearBuild()
+    {
+        // Instantly wipe the current_build array from the user's session
+        session()->forget('current_build');
+        
+        return redirect()->route('builder.index')->with('success', 'Your workspace has been completely cleared.');
+    }
+
 }

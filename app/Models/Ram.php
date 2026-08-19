@@ -20,6 +20,10 @@ class Ram extends Model
         'capacity_gb',
         'speed',
         'score',
-        'price',
     ];
+
+    public function prices()
+    {
+        return $this->morphMany(\App\Models\ComponentPrice::class, 'component');
+    }
 }

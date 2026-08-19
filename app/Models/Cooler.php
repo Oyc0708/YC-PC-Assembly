@@ -18,6 +18,10 @@ class Cooler extends Model
         'manufacturer',
         'max_tdp',
         'is_water_cooled',
-        'price',
     ];
+
+    public function prices()
+    {
+        return $this->morphMany(\App\Models\ComponentPrice::class, 'component');
+    }
 }

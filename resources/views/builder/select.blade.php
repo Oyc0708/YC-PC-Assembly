@@ -1,115 +1,260 @@
 <x-layout>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2>Select {{ strtoupper($category) }}</h2>
-        <a href="{{ route('builder.index') }}" class="btn-secondary" style="text-decoration: none;">&larr; Back to Build</a>
-    </div>
-
-    <!-- Two-Column Layout for Filter & Catalog -->
-    <div style="display: grid; grid-template-columns: 300px 1fr; gap: 24px; align-items: start;">
+    <div style="max-width: 1400px; margin: 0 auto; padding: 20px;">
         
-        <!-- FILTER SIDEBAR -->
-        <div class="card" style="position: sticky; top: 20px;">
-            <h3 style="margin-top: 0; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Filters</h3>
-            
-            <form method="GET" action="{{ route('builder.select', $category) }}">
-                
-                <!-- Search Input -->
-                <div class="form-group">
-                    <label class="form-label">Search Model / Brand</label>
-                    <input type="text" name="search" value="{{ request('search') }}" class="form-input" placeholder="e.g. Ryzen 5...">
-                </div>
-
-                <!-- Price Range -->
-                <div class="form-group">
-                    <label class="form-label">Price Range (RM)</label>
-                    <div style="display: flex; gap: 10px;">
-                        <input type="number" name="min_price" value="{{ request('min_price') }}" class="form-input" placeholder="Min" style="width: 50%;">
-                        <input type="number" name="max_price" value="{{ request('max_price') }}" class="form-input" placeholder="Max" style="width: 50%;">
-                    </div>
-                </div>
-
-                <!-- Socket Filter (Only shows for CPU/Motherboard) -->
-                @if(isset($sockets) && count($sockets) > 0)
-                    <div class="form-group">
-                        <label class="form-label">Socket Type</label>
-                        <select name="socket" class="form-input">
-                            <option value="">All Sockets</option>
-                            @foreach($sockets as $socket)
-                                <option value="{{ $socket }}" {{ request('socket') == $socket ? 'selected' : '' }}>
-                                    {{ $socket }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                @endif
-
-                <!-- RAM Generation Filter (Only shows for RAM/Motherboard) -->
-                @if(isset($ramTypes) && count($ramTypes) > 0)
-                    <div class="form-group">
-                        <label class="form-label">Memory Generation</label>
-                        <select name="ram_type" class="form-input">
-                            <option value="">All Types</option>
-                            @foreach($ramTypes as $type)
-                                <option value="{{ $type }}" {{ request('ram_type') == $type ? 'selected' : '' }}>
-                                    {{ $type }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                @endif
-
-                <div style="display: flex; gap: 10px; margin-top: 30px;">
-                    <a href="{{ route('builder.select', $category) }}" class="btn-secondary" style="flex: 1; text-decoration: none; text-align: center; padding-top: 10px;">Clear</a>
-                    <button type="submit" class="btn-primary" style="flex: 2;">Apply Filters</button>
-                </div>
-            </form>
+        <!-- TOP STATUS / BREADCRUMB -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div>
+                <a href="{{ route('builder.index') }}" style="color: var(--text-muted); text-decoration: none; font-size: 14px;">← Back to Workspace</a>
+                <h1 style="margin: 5px 0 0 0; text-transform: uppercase; font-size: 1.8rem; color: var(--neon-green);">
+                    Select {{ $category }}
+                </h1>
+            </div>
+            <div style="color: var(--text-muted); font-size: 14px;">
+                Showing <strong style="color: #fff;">{{ $parts->total() }}</strong> compatible parts
+            </div>
         </div>
 
-        <!-- CATALOG GRID -->
-        <div>
-            @if($parts->isEmpty())
-                <div class="card" style="text-align: center; padding: 40px; color: var(--text-muted);">
-                    <h3>No components found</h3>
-                    <p>Try adjusting your filters or clearing your search.</p>
-                </div>
-            @else
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
-                    @foreach($parts as $part)
-                        <div class="card" style="margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between; transition: transform 0.2s ease, border-color 0.2s ease;">
+        <div style="display: grid; grid-template-columns: 280px 1fr; gap: 25px; align-items: start;">
+            
+            <!-- ========================================================= -->
+            <!-- DYNAMIC FILTER SIDEBAR -->
+            <!-- ========================================================= -->
+            <form id="filter-form" method="GET" action="{{ route('builder.select', $category) }}">
+                <div class="card" style="background: #141416; border: 1px solid var(--border-color); border-radius: 8px; padding: 20px;">
+                    
+                    <!-- Top Part List Header -->
+                    <div style="background: #1e1e24; border-radius: 6px; padding: 15px; margin-bottom: 20px; border: 1px solid #2a2a32;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <span style="background: #e11d48; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: bold;">⚡</span>
+                            <strong style="font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase;">Build Context</strong>
+                        </div>
+                        
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; color: var(--neon-green); font-weight: bold; margin-bottom: 15px;">
+                            <input type="checkbox" name="compatibility_filter" value="1" {{ $compatibilityFilter ? 'checked' : '' }} onchange="this.form.submit()">
+                            Compatibility Filter
+                        </label>
+
+                        <div style="display: flex; justify-content: space-between; border-top: 1px solid #333; padding-top: 10px; font-size: 12px;">
                             <div>
-                                <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">{{ $part->manufacturer }}</div>
-                                <h4 style="margin: 5px 0 15px 0; font-size: 16px;">{{ $part->name }}</h4>
-                                
-                                <!-- Dynamic Specs List -->
-                                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 15px; display: grid; gap: 4px;">
-                                    @if(isset($part->socket)) <div>Socket: <span style="color: var(--text-main);">{{ $part->socket }}</span></div> @endif
-                                    @if(isset($part->tdp)) <div>TDP: <span style="color: var(--text-main);">{{ $part->tdp }}W</span></div> @endif
-                                    @if(isset($part->ram_type)) <div>RAM: <span style="color: var(--text-main);">{{ $part->ram_type }}</span></div> @endif
-                                    @if(isset($part->type)) <div>Type: <span style="color: var(--text-main);">{{ $part->type }}</span></div> @endif
-                                    @if(isset($part->length_mm)) <div>Length: <span style="color: var(--text-main);">{{ $part->length_mm }}mm</span></div> @endif
-                                    @if(isset($part->wattage)) <div>Wattage: <span style="color: var(--text-main);">{{ $part->wattage }}W</span></div> @endif
-                                </div>
+                                <span style="color: var(--text-muted); display: block;">PARTS</span>
+                                <strong>{{ $selectedCount }} / 7</strong>
                             </div>
-                            
-                            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 15px;">
-                                <span style="color: var(--neon-green); font-weight: bold; font-size: 18px;">RM {{ number_format($part->price, 2) }}</span>
-                                
-                                <form action="{{ route('builder.add') }}" method="POST" style="margin: 0;">
-                                    @csrf
-                                    <input type="hidden" name="category" value="{{ $category }}">
-                                    <input type="hidden" name="id" value="{{ $part->id }}">
-                                    <button type="submit" class="btn-primary" style="padding: 6px 12px; font-size: 13px;">Add to Build</button>
-                                </form>
+                            <div>
+                                <span style="color: var(--text-muted); display: block;">TOTAL</span>
+                                <strong style="color: var(--neon-green);">RM {{ number_format($totalCost, 2) }}</strong>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted); display: block;">EST. WATT</span>
+                                <strong style="color: var(--neon-orange, #f97316);">{{ $estWattage }}W</strong>
                             </div>
                         </div>
-                    @endforeach
+                    </div>
+
+                    <!-- Search Input -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-size: 12px; text-transform: uppercase; color: var(--text-muted); font-weight: bold; display: block; margin-bottom: 6px;">Search</label>
+                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Search model or brand..." class="form-input" style="width: 100%; box-sizing: border-box; padding: 8px 12px; font-size: 13px;">
+                    </div>
+
+                    <!-- Price Filter -->
+                    <div style="border-top: 1px solid var(--border-color); padding: 15px 0;">
+                        <label style="font-size: 12px; text-transform: uppercase; color: var(--text-muted); font-weight: bold; display: block; margin-bottom: 8px;">Price Range (RM)</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="number" name="min_price" value="{{ request('min_price') }}" placeholder="Min" class="form-input" style="width: 100%; padding: 6px; font-size: 13px;">
+                            <span style="color: var(--text-muted);">-</span>
+                            <input type="number" name="max_price" value="{{ request('max_price') }}" placeholder="Max" class="form-input" style="width: 100%; padding: 6px; font-size: 13px;">
+                        </div>
+                    </div>
+
+                    <!-- Manufacturer Checkboxes -->
+                    @if(isset($filterOptions['manufacturers']) && count($filterOptions['manufacturers']) > 0)
+                        <div style="border-top: 1px solid var(--border-color); padding: 15px 0;">
+                            <label style="font-size: 12px; text-transform: uppercase; color: var(--text-muted); font-weight: bold; display: block; margin-bottom: 8px;">Manufacturer</label>
+                            <div style="max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
+                                @foreach($filterOptions['manufacturers'] as $mfg)
+                                    <label style="font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-main); cursor: pointer;">
+                                        <input type="checkbox" name="manufacturers[]" value="{{ $mfg }}" {{ in_array($mfg, (array) request('manufacturers', [])) ? 'checked' : '' }} onchange="this.form.submit()">
+                                        {{ $mfg }}
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Socket Checkboxes (CPU & Motherboard) -->
+                    @if(isset($filterOptions['sockets']) && count($filterOptions['sockets']) > 0)
+                        <div style="border-top: 1px solid var(--border-color); padding: 15px 0;">
+                            <label style="font-size: 12px; text-transform: uppercase; color: var(--text-muted); font-weight: bold; display: block; margin-bottom: 8px;">Socket</label>
+                            <div style="max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
+                                @foreach($filterOptions['sockets'] as $skt)
+                                    <label style="font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-main); cursor: pointer;">
+                                        <input type="checkbox" name="sockets[]" value="{{ $skt }}" {{ in_array($skt, (array) request('sockets', [])) ? 'checked' : '' }} onchange="this.form.submit()">
+                                        {{ $skt }}
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- RAM Type Checkboxes (RAM & Motherboard) -->
+                    @if(isset($filterOptions['ram_types']) && count($filterOptions['ram_types']) > 0)
+                        <div style="border-top: 1px solid var(--border-color); padding: 15px 0;">
+                            <label style="font-size: 12px; text-transform: uppercase; color: var(--text-muted); font-weight: bold; display: block; margin-bottom: 8px;">Memory Generation</label>
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                @foreach($filterOptions['ram_types'] as $rt)
+                                    <label style="font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-main); cursor: pointer;">
+                                        <input type="checkbox" name="ram_types[]" value="{{ $rt }}" {{ in_array($rt, (array) request('ram_types', [])) ? 'checked' : '' }} onchange="this.form.submit()">
+                                        {{ $rt }}
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Form Factor Checkboxes (Motherboard & Case) -->
+                    @if(isset($filterOptions['form_factors']) && count($filterOptions['form_factors']) > 0)
+                        <div style="border-top: 1px solid var(--border-color); padding: 15px 0;">
+                            <label style="font-size: 12px; text-transform: uppercase; color: var(--text-muted); font-weight: bold; display: block; margin-bottom: 8px;">Form Factor</label>
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                @foreach($filterOptions['form_factors'] as $ff)
+                                    <label style="font-size: 13px; display: flex; align-items: center; gap: 8px; color: var(--text-main); cursor: pointer;">
+                                        <input type="checkbox" name="form_factors[]" value="{{ $ff }}" {{ in_array($ff, (array) request('form_factors', [])) ? 'checked' : '' }} onchange="this.form.submit()">
+                                        {{ $ff }}
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Action Buttons -->
+                    <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 8px;">
+                        <button type="submit" class="btn-primary" style="width: 100%; padding: 10px; font-size: 13px;">Apply Filters</button>
+                        <a href="{{ route('builder.select', $category) }}" style="text-align: center; color: var(--text-muted); text-decoration: none; font-size: 12px; padding: 6px;">Reset Filters</a>
+                    </div>
                 </div>
-                
-                <!-- Pagination Links -->
-                <div style="margin-top: 30px;">
-                    {{ $parts->links() }}
-                </div>
-            @endif
+            </form>
+
+            <!-- ========================================================= -->
+            <!-- PRODUCT RESULTS GRID -->
+            <!-- ========================================================= -->
+            <div>
+                <!-- Admin Sync Button -->
+                @auth
+                    <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+                        <form action="{{ route('admin.sync_prices') }}" method="POST" onsubmit="return confirm('This will ping 5 external servers for all components. Proceed?');">
+                            @csrf
+                            <button type="submit" class="btn-secondary" style="font-size: 11px; padding: 6px 12px; border-color: var(--neon-blue); color: var(--neon-blue);">
+                                🔄 Force Live Price Sync
+                            </button>
+                        </form>
+                    </div>
+                @endauth
+
+                @if($parts->count() > 0)
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        @foreach($parts as $part)
+                            <!-- UPDATED CARD: flex-direction: column to stack info and prices -->
+                            <div class="card" style="margin: 0; padding: 18px 22px; display: flex; flex-direction: column; background: #18181b; border: 1px solid var(--border-color); border-radius: 6px;">
+                                
+                                <!-- Top Half: Product Info & Add Button -->
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                                    <div style="flex: 1; padding-right: 20px;">
+                                        <div style="font-size: 11px; text-transform: uppercase; color: var(--accent-blue, #60a5fa); font-weight: bold;">
+                                            {{ $part->manufacturer }}
+                                        </div>
+                                        <h3 style="margin: 3px 0 8px 0; font-size: 1.1rem; color: #fff;">
+                                            {{ $part->name }}
+                                        </h3>
+                                        
+                                        <!-- Dynamic Spec Badges per Category -->
+                                        <div style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted);">
+                                            @if($category === 'cpu')
+                                                <span><strong>Cores:</strong> {{ $part->cores }}</span>
+                                                <span><strong>Socket:</strong> {{ $part->socket }}</span>
+                                                <span><strong>Base Clock:</strong> {{ $part->base_clock }} GHz</span>
+                                                <span><strong>TDP:</strong> {{ $part->tdp }}W</span>
+                                            @elseif($category === 'gpu')
+                                                <span><strong>VRAM:</strong> {{ $part->memory }} GB</span>
+                                                <span><strong>Clock:</strong> {{ $part->clock_speed }} MHz</span>
+                                                <span><strong>Length:</strong> {{ $part->length_mm }}mm</span>
+                                                <span><strong>TDP:</strong> {{ $part->tdp }}W</span>
+                                            @elseif($category === 'mobo')
+                                                <span><strong>Socket:</strong> {{ $part->socket }}</span>
+                                                <span><strong>RAM:</strong> {{ $part->ram_type }}</span>
+                                                <span><strong>Form Factor:</strong> {{ $part->form_factor }}</span>
+                                            @elseif($category === 'ram')
+                                                <span><strong>Type:</strong> {{ $part->type }}</span>
+                                                <span><strong>Capacity:</strong> {{ $part->capacity }} GB</span>
+                                                <span><strong>Speed:</strong> {{ $part->speed }} MHz</span>
+                                            @elseif($category === 'psu')
+                                                <span><strong>Wattage:</strong> {{ $part->wattage }}W</span>
+                                            @elseif($category === 'case')
+                                                <span><strong>Form Factor:</strong> {{ $part->form_factor }}</span>
+                                                <span><strong>Max GPU:</strong> {{ $part->max_gpu_length_mm }}mm</span>
+                                            @elseif($category === 'cooler')
+                                                <span><strong>Max TDP:</strong> {{ $part->max_tdp }}W</span>
+                                            @endif
+                                        </div>
+                                    </div>
+
+                                    <div style="text-align: right; min-width: 140px;">
+                                        <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Best Market Price</div>
+                                        <div style="color: var(--neon-green); font-size: 1.3rem; font-weight: bold; margin-bottom: 8px;">
+                                            RM {{ number_format($part->prices->min('price') ?? $part->price, 2) }}
+                                        </div>
+                                        
+                                        <form action="{{ route('builder.add') }}" method="POST">
+                                            @csrf
+                                            <input type="hidden" name="category" value="{{ $category }}">
+                                            <input type="hidden" name="id" value="{{ $part->id }}">
+                                            <button type="submit" class="btn-primary" style="padding: 8px 18px; font-size: 13px; font-weight: bold; width: 100%;">
+                                                + Add Part
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                <!-- Bottom Half: 5 Vendor Sources -->
+                                @if($part->prices && $part->prices->count() > 0)
+                                    <div style="border-top: 1px solid #2d2d2d; padding-top: 15px;">
+                                        <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: bold; margin-bottom: 10px;">
+                                            Live Malaysian Market Prices
+                                        </div>
+                                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
+                                            @foreach($part->prices->sortBy('price') as $vendorPrice)
+                                                <a href="{{ $vendorPrice->url }}" target="_blank" 
+                                                   style="display: flex; flex-direction: column; background: #111; border: 1px solid {{ $vendorPrice->in_stock ? '#333' : '#4a0000' }}; padding: 10px; border-radius: 6px; text-decoration: none; transition: border-color 0.2s;">
+                                                    <span style="color: #fff; font-size: 12px; font-weight: bold; margin-bottom: 4px;">{{ $vendorPrice->vendor }}</span>
+                                                    @if($vendorPrice->in_stock)
+                                                        <span style="color: var(--neon-green); font-size: 14px; font-weight: bold;">RM {{ number_format($vendorPrice->price, 2) }}</span>
+                                                    @else
+                                                        <span style="color: var(--neon-red); font-size: 12px; font-weight: bold;">OUT OF STOCK</span>
+                                                    @endif
+                                                </a>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <!-- Pagination -->
+                    <div style="margin-top: 25px;">
+                        {{ $parts->links() }}
+                    </div>
+                @else
+                    <div class="card" style="text-align: center; padding: 60px 20px; background: #141416;">
+                        <h3 style="color: var(--text-muted); margin-bottom: 10px;">No components match the selected filters.</h3>
+                        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
+                            Try turning off the <strong>Compatibility Filter</strong> or resetting your price and brand constraints.
+                        </p>
+                        <a href="{{ route('builder.select', $category) }}" class="btn-secondary" style="text-decoration: none; padding: 10px 20px;">Reset All Filters</a>
+                    </div>
+                @endif
+            </div>
+
         </div>
     </div>
 </x-layout>

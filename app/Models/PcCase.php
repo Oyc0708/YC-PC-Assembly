@@ -18,6 +18,10 @@ class PcCase extends Model
         'manufacturer',
         'max_gpu_length_mm',
         'form_factor',
-        'price',
     ];
+
+    public function prices()
+    {
+        return $this->morphMany(\App\Models\ComponentPrice::class, 'component');
+    }
 }

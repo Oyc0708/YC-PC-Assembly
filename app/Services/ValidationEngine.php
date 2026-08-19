@@ -166,6 +166,20 @@ class ValidationEngine
             'warnings'          => $warnings,
             'estimated_wattage' => $estWattage
         ];
+
+        $estWattage = ((int)($build['cpu']->tdp ?? 65)) + ((int)($build['gpu']->tdp ?? 150)) + 50;
+        
+        $powerAnalytics = isset($build['psu']) ? $this->analyzePowerEfficiency($estWattage, $build['psu']->wattage) : null;
+        $bottleneckAnalytics = (isset($build['cpu']) && isset($build['gpu'])) ? $this->calculateBottleneck($build['cpu'], $build['gpu']) : null;
+
+        return [
+            'is_valid' => empty($issues), // (Assuming you have an $issues array)
+            'warnings' => $warnings ?? [], // (Assuming you have a $warnings array)
+            'issues' => $issues ?? [],
+            'estimated_wattage' => $estWattage,
+            'power_analytics' => $powerAnalytics,
+            'bottleneck' => $bottleneckAnalytics
+        ];
     }
 
     /**
@@ -256,6 +270,77 @@ class ValidationEngine
             'tier'         => $tier,
             'percentage'   => (int) round($percentage),
             'breakdown'    => $breakdown,
+        ];
+    }
+
+    public function analyzePowerEfficiency($estWattage, $psuWattage)
+    {
+        if (!$psuWattage || $psuWattage <= 0) return null;
+
+        $loadPercentage = ($estWattage / $psuWattage) * 100;
+        
+        $status = 'Optimal';
+        $color = 'var(--neon-green)';
+        $message = 'Your PSU will operate at peak efficiency.';
+
+        if ($loadPercentage < 40) {
+            $status = 'Underutilized';
+            $color = 'var(--neon-blue)';
+            $message = 'PSU is overkill. It will run quietly but slightly less efficiently.';
+        } elseif ($loadPercentage > 85) {
+            $status = 'Heavy Load';
+            $color = 'var(--neon-orange)';
+            $message = 'Approaching limits. Transients may cause system instability.';
+        } elseif ($loadPercentage >= 100) {
+            $status = 'Overloaded';
+            $color = 'var(--neon-red)';
+            $message = 'Danger: PSU wattage is insufficient for this system!';
+        }
+
+        return [
+            'load_percentage' => round($loadPercentage),
+            'status' => $status,
+            'color' => $color,
+            'message' => $message
+        ];
+    }
+
+    /**
+     * Heuristic Bottleneck Calculator
+     * Compares raw CPU output to GPU output to find massive generational or tier mismatches.
+     */
+    public function calculateBottleneck($cpu, $gpu)
+    {
+        if (!$cpu || !$gpu) return null;
+
+        // Calculate rough theoretical throughput
+        $cpuPower = ((int)$cpu->cores * (float)($cpu->boost_clock ?? $cpu->base_clock)) * 10; 
+        $gpuPower = ((int)$gpu->memory * ((int)$gpu->clock_speed / 100));
+
+        if ($gpuPower <= 0) return null;
+
+        $ratio = $cpuPower / $gpuPower;
+
+        // Baseline acceptable ratio is around 1.0 to 2.5
+        $status = 'Balanced';
+        $color = 'var(--neon-green)';
+        $warning = 'CPU and GPU are a great match.';
+
+        if ($ratio < 0.6) {
+            $status = 'CPU Bottleneck';
+            $color = 'var(--neon-red)';
+            $warning = 'Your CPU is too weak for this GPU. Expect stuttering in CPU-heavy games.';
+        } elseif ($ratio > 3.5) {
+            $status = 'GPU Bottleneck';
+            $color = 'var(--neon-orange)';
+            $warning = 'Your GPU is too weak for this CPU. Graphics will hold back your framerate.';
+        }
+
+        return [
+            'status' => $status,
+            'color' => $color,
+            'message' => $warning,
+            'ratio' => round($ratio, 2)
         ];
     }
 }

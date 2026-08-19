@@ -20,6 +20,10 @@ class Gpu extends Model
         'tdp',
         'length_mm',
         'score',
-        'price',
     ];
+
+    public function prices()
+    {
+        return $this->morphMany(\App\Models\ComponentPrice::class, 'component');
+    }
 }

@@ -21,7 +21,19 @@
             <!-- Left Side: Configuration Slots -->
             <div class="builder-config">
                 <div class="card">
-                    <h2 style="margin-top: 0;">Configuration</h2>
+                    <!-- Configuration Header & Remove All Action -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="margin: 0;">Configuration</h2>
+                        
+                        @if(count($currentBuild) > 0)
+                            <form action="{{ route('builder.clear') }}" method="POST" onsubmit="return confirm('Are you sure you want to clear your entire build?');" style="margin: 0;">
+                                @csrf
+                                <button type="submit" class="btn-secondary" style="color: var(--neon-red); border-color: var(--neon-red); padding: 6px 12px; font-size: 12px; display: flex; align-items: center; gap: 5px;">
+                                    🗑️ Remove All
+                                </button>
+                            </form>
+                        @endif
+                    </div>
                     
                     @if(session('success'))
                         <div style="padding: 10px; background: rgba(0, 255, 102, 0.1); color: var(--neon-green); border-left: 4px solid var(--neon-green); margin-bottom: 20px;">
@@ -173,6 +185,47 @@
                         @endif
                     @else
                         <div style="color: var(--text-muted);">Add parts to run diagnostics.</div>
+                    @endif
+
+                    <!-- ADVANCED HEURISTICS & ANALYTICS -->
+                    @if(isset($compatibility['power_analytics']) || isset($compatibility['bottleneck']))
+                        <h3 style="border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: 20px;">System Analytics</h3>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 15px;">
+                            
+                            <!-- Bottleneck Analyst -->
+                            @if(isset($compatibility['bottleneck']))
+                                <div style="background: #18181b; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); border-left: 4px solid {{ $compatibility['bottleneck']['color'] }};">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                        <span style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: bold;">Compute Balance</span>
+                                        <span style="font-size: 12px; font-weight: bold; color: {{ $compatibility['bottleneck']['color'] }};">{{ $compatibility['bottleneck']['status'] }}</span>
+                                    </div>
+                                    <div style="font-size: 12px; color: var(--text-main);">
+                                        {{ $compatibility['bottleneck']['message'] }}
+                                    </div>
+                                </div>
+                            @endif
+
+                            <!-- Power Efficiency Curve -->
+                            @if(isset($compatibility['power_analytics']))
+                                <div style="background: #18181b; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color);">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                        <span style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: bold;">PSU Load Curve</span>
+                                        <span style="font-size: 12px; font-weight: bold; color: {{ $compatibility['power_analytics']['color'] }};">{{ $compatibility['power_analytics']['load_percentage'] }}% Load</span>
+                                    </div>
+                                    
+                                    <!-- Visual Bar -->
+                                    <div style="width: 100%; background: #2d2d2d; height: 6px; border-radius: 3px; margin-bottom: 8px; overflow: hidden; display: flex;">
+                                        <div style="width: {{ min($compatibility['power_analytics']['load_percentage'], 100) }}%; background-color: {{ $compatibility['power_analytics']['color'] }}; transition: width 0.5s ease;"></div>
+                                    </div>
+                                    
+                                    <div style="font-size: 11px; color: var(--text-muted);">
+                                        {{ $compatibility['power_analytics']['message'] }}
+                                    </div>
+                                </div>
+                            @endif
+
+                        </div>
                     @endif
 
                     <!-- Save Configuration Action -->
@@ -341,4 +394,35 @@
             document.getElementById('tab-' + tabId).classList.add('tab-active');
         }
     </script>
+
+    <!-- WELCOME BACK TOAST MODULE (Self-Contained) -->
+    @php
+        $showWelcome = false;
+        if (!session()->has('has_been_welcomed_builder')) {
+            session(['has_been_welcomed_builder' => true]);
+            $showWelcome = true;
+            $userName = auth()->check() ? auth()->user()->name : 'User';
+        }
+    @endphp
+
+    @if($showWelcome)
+        <div id="welcome-toast"
+            style="position: fixed; bottom: 30px; right: 30px; background-color: var(--neon-green, #4ade80); color: #111; padding: 16px 28px; border-radius: 8px; font-weight: bold; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); z-index: 9999; transition: opacity 0.5s ease, transform 0.5s ease; transform: translateY(0);">
+            Welcome back, {{ $userName }}!
+        </div>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                setTimeout(function() {
+                    let toast = document.getElementById('welcome-toast');
+                    if (toast) {
+                        toast.style.opacity = '0';
+                        toast.style.transform = 'translateY(20px)';
+                        
+                        setTimeout(() => toast.remove(), 500);
+                    }
+                }, 3000); 
+            });
+        </script>
+    @endif
 </x-layout>

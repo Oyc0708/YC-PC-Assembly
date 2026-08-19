@@ -21,6 +21,10 @@ class Motherboard extends Model
         'ram_slots',
         'ram_type',
         'form_factor',
-        'price',
     ];
+
+    public function prices()
+    {
+        return $this->morphMany(\App\Models\ComponentPrice::class, 'component');
+    }
 }

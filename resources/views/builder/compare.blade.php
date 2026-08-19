@@ -33,36 +33,36 @@
                                     <div class="info-tooltip">
                                         i
                                         <div class="tooltip-content" style="width: 320px; text-align: left;">
-    <strong style="color: var(--accent-blue); display: block; margin-bottom: 8px; font-size: 14px;">Heuristic Score Breakdown</strong>
-    @if(isset($scores['breakdown']['error']))
-        {{ $scores['breakdown']['error'] }}
-    @else
-        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
-            <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">{{ $scores['breakdown']['gpu_contribution'] }}</div>
-            <div style="font-size: 10px; margin-bottom: 4px;">Formula: {{ $scores['breakdown']['gpu_math'] }}</div>
-            
-            <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">{{ $scores['breakdown']['cpu_contribution'] }}</div>
-            <div style="font-size: 10px; margin-bottom: 4px;">Formula: {{ $scores['breakdown']['cpu_math'] }}</div>
-            
-            <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">{{ $scores['breakdown']['ram_contribution'] }}</div>
-            <div style="font-size: 10px; margin-bottom: 4px;">Formula: {{ $scores['breakdown']['ram_math'] }}</div>
-        </div>
+                                            <strong style="color: var(--accent-blue); display: block; margin-bottom: 8px; font-size: 14px;">Heuristic Score Breakdown</strong>
+                                            @if(isset($scores1['breakdown']['error']))
+                                                {{ $scores1['breakdown']['error'] }}
+                                            @else
+                                                <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
+                                                    <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">{{ $scores1['breakdown']['gpu_contribution'] ?? 'N/A' }}</div>
+                                                    <div style="font-size: 10px; margin-bottom: 4px;">Formula: {{ $scores1['breakdown']['gpu_math'] ?? 'N/A' }}</div>
+                                                    
+                                                    <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">{{ $scores1['breakdown']['cpu_contribution'] ?? 'N/A' }}</div>
+                                                    <div style="font-size: 10px; margin-bottom: 4px;">Formula: {{ $scores1['breakdown']['cpu_math'] ?? 'N/A' }}</div>
+                                                    
+                                                    <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">{{ $scores1['breakdown']['ram_contribution'] ?? 'N/A' }}</div>
+                                                    <div style="font-size: 10px; margin-bottom: 4px;">Formula: {{ $scores1['breakdown']['ram_math'] ?? 'N/A' }}</div>
+                                                </div>
 
-        <div style="border-top: 1px solid var(--border-color); padding-top: 6px; margin-bottom: 6px; font-size: 11px;">
-            <div style="color: var(--text-main); font-weight: bold;">Gaming Focus:</div>
-            <div style="color: var(--text-muted);">(GPU × 65%) + (CPU × 25%) + (RAM × 10%)</div>
-            <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">Productivity Focus:</div>
-            <div style="color: var(--text-muted);">(CPU × 50%) + (RAM × 30%) + (GPU × 20%)</div>
-        </div>
+                                                <div style="border-top: 1px solid var(--border-color); padding-top: 6px; margin-bottom: 6px; font-size: 11px;">
+                                                    <div style="color: var(--text-main); font-weight: bold;">Gaming Focus:</div>
+                                                    <div style="color: var(--text-muted);">(GPU × 65%) + (CPU × 25%) + (RAM × 10%)</div>
+                                                    <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">Productivity Focus:</div>
+                                                    <div style="color: var(--text-muted);">(CPU × 50%) + (RAM × 30%) + (GPU × 20%)</div>
+                                                </div>
 
-        <div style="border-top: 1px solid var(--border-color); padding-top: 6px;">
-            <strong style="color: {{ $scores['breakdown']['multiplier'] < 1 ? 'var(--neon-orange)' : 'var(--neon-green)' }}; display: block; margin-bottom: 2px;">
-                System Balance Impact
-            </strong>
-            <span style="color: var(--text-muted);">{{ $scores['breakdown']['balance'] }}</span>
-        </div>
-    @endif
-</div>
+                                                <div style="border-top: 1px solid var(--border-color); padding-top: 6px;">
+                                                    <strong style="color: {{ ($scores1['breakdown']['multiplier'] ?? 1) < 1 ? 'var(--neon-orange)' : 'var(--neon-green)' }}; display: block; margin-bottom: 2px;">
+                                                        System Balance Impact
+                                                    </strong>
+                                                    <span style="color: var(--text-muted);">{{ $scores1['breakdown']['balance'] ?? 'N/A' }}</span>
+                                                </div>
+                                            @endif
+                                        </div>
                                     </div>
                                 @endif
                             </div>
@@ -96,23 +96,23 @@
                                                 {{ $scores2['breakdown']['error'] }}
                                             @else
                                                 <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
-                                                    <div>• {{ $scores2['breakdown']['gpu_contribution'] }}</div>
-                                                    <div>• {{ $scores2['breakdown']['cpu_contribution'] }}</div>
-                                                    <div>• {{ $scores2['breakdown']['ram_contribution'] }}</div>
+                                                    <div>• {{ $scores2['breakdown']['gpu_contribution'] ?? 'N/A' }}</div>
+                                                    <div>• {{ $scores2['breakdown']['cpu_contribution'] ?? 'N/A' }}</div>
+                                                    <div>• {{ $scores2['breakdown']['ram_contribution'] ?? 'N/A' }}</div>
                                                 </div>
 
                                                 <div style="border-top: 1px solid var(--border-color); padding-top: 6px; margin-bottom: 6px; font-size: 11px;">
                                                     <div style="color: var(--text-main); font-weight: bold;">Gaming Score:</div>
-                                                    <div style="color: var(--text-muted);">({{ $scores2['breakdown']['formula_gaming'] }})</div>
+                                                    <div style="color: var(--text-muted);">({{ $scores2['breakdown']['gaming'] ?? 'N/A' }})</div>
                                                     <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">Productivity Score:</div>
-                                                    <div style="color: var(--text-muted);">({{ $scores2['breakdown']['formula_prod'] }})</div>
+                                                    <div style="color: var(--text-muted);">({{ $scores2['breakdown']['formula_prod'] ?? 'N/A' }})</div>
                                                 </div>
 
                                                 <div style="border-top: 1px solid var(--border-color); padding-top: 6px;">
-                                                    <strong style="color: {{ $scores2['breakdown']['multiplier'] < 1 ? 'var(--neon-orange)' : 'var(--neon-green)' }}; display: block; margin-bottom: 2px;">
+                                                    <strong style="color: {{ ($scores2['breakdown']['multiplier'] ?? 1) < 1 ? 'var(--neon-orange)' : 'var(--neon-green)' }}; display: block; margin-bottom: 2px;">
                                                         System Balance Impact
                                                     </strong>
-                                                    <span style="color: var(--text-muted);">{{ $scores2['breakdown']['balance'] }}</span>
+                                                    <span style="color: var(--text-muted);">{{ $scores2['breakdown']['balance'] ?? 'N/A' }}</span>
                                                 </div>
                                             @endif
                                         </div>
