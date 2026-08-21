@@ -14,16 +14,13 @@ class CreateMotherboardsTable extends Migration
     public function up()
     {
         Schema::create('motherboards', function (Blueprint $table) {
-            // Keep your existing ID and UUID setup...
             $table->uuid('id')->primary();
-            $table->string('name');
+            $table->string('name', 100)->unique();
             $table->string('manufacturer')->nullable();
             $table->string('socket')->nullable();
             $table->string('ram_type')->nullable();
-            
-            $table->integer('max_ram')->nullable();
             $table->integer('ram_slots')->nullable();
-            
+            $table->integer('max_ram')->nullable();
             $table->string('form_factor')->nullable();
             $table->decimal('price', 10, 2)->nullable();
             $table->timestamps();

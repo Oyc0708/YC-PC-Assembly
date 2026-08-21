@@ -15,7 +15,7 @@ class CreateCoolersTable extends Migration
     {
         Schema::create('coolers', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('name', 500);
+            $table->string('name', 100)->unique();
             $table->string('manufacturer');
             $table->integer('max_tdp')->nullable();
             $table->boolean('is_water_cooled')->default(false);

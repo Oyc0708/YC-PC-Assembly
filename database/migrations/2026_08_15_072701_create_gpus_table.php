@@ -15,14 +15,14 @@ class CreateGpusTable extends Migration
     {
         Schema::create('gpus', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('name', 500);
+            $table->string('name', 191)->unique();
             $table->string('manufacturer');
-            $table->integer('vram_gb')->nullable();
-            $table->integer('memory')->nullable(); // VRAM
-            $table->integer('clock_speed')->nullable(); // Core clock
+            $table->integer('memory')->nullable();
+            $table->string('memory_type')->nullable();
+            $table->integer('clock_speed')->nullable();
             $table->integer('tdp')->nullable();
             $table->integer('length_mm')->nullable();
-            $table->integer('score')->default(70); // Mock benchmark
+            $table->integer('score')->default(70);
             $table->decimal('price', 8, 2)->default(0.00);
             $table->timestamps();
         });

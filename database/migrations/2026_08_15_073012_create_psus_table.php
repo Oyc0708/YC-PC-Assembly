@@ -15,10 +15,11 @@ class CreatePsusTable extends Migration
     {
         Schema::create('psus', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('name', 500);
+            $table->string('name', 100)->unique();
             $table->string('manufacturer');
             $table->integer('wattage');
             $table->string('efficiency')->nullable();
+            $table->boolean('modular')->default(false);
             $table->decimal('price', 8, 2)->default(0.00);
             $table->timestamps();
         });

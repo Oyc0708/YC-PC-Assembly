@@ -15,9 +15,10 @@ class CreateCpusTable extends Migration
     {
         Schema::create('cpus', function (Blueprint $table) {
         $table->uuid('id')->primary();
-        $table->string('name', 500);
+        $table->string('name', 100)->unique();
         $table->string('manufacturer');
         $table->integer('cores')->default(0);
+        $table->integer('threads')->default(0);
         $table->string('socket');
         $table->integer('tdp')->nullable();
         $table->decimal('base_clock', 8, 2)->nullable();

@@ -15,7 +15,7 @@ class CreateRamsTable extends Migration
     {
         Schema::create('rams', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('name', 500);
+            $table->string('name', 100)->unique();
             $table->string('manufacturer');
             $table->string('type'); // e.g., DDR4, DDR5
             $table->integer('capacity')->nullable();

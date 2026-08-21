@@ -1,21 +1,16 @@
 <x-layout>
     <!-- Tab Navigation -->
-    <div class="tab-container">
-        <button onclick="switchTab('manual')" id="tab-manual" class="tab-btn tab-active">Manual Builder</button>
-        <button onclick="switchTab('catalog')" id="tab-catalog" class="tab-btn">Hardware Catalog</button>
-        <button onclick="switchTab('autobuild')" id="tab-autobuild" class="tab-btn" style="color: var(--neon-green);">Auto-Build ⚡</button>
-        <button onclick="switchTab('saved')" id="tab-saved" class="tab-btn">Saved Builds</button>
+    <div class="tab-container" role="tablist">
+        <button onclick="switchTab('manual')" id="tab-manual" class="tab-btn tab-active" role="tab" aria-selected="true" aria-controls="view-manual">Manual Builder</button>
+        <button onclick="switchTab('catalog')" id="tab-catalog" class="tab-btn" role="tab" aria-selected="false" aria-controls="view-catalog">Hardware Catalog</button>
+        <button onclick="switchTab('autobuild')" id="tab-autobuild" class="tab-btn" role="tab" aria-selected="false" aria-controls="view-autobuild" style="color: var(--neon-green);">Auto-Build ⚡</button>
+        <button onclick="switchTab('saved')" id="tab-saved" class="tab-btn" role="tab" aria-selected="false" aria-controls="view-saved">Saved Builds</button>
 
-        @auth
-            <a href="{{ route('builder.compare') }}" class="tab-btn" style="text-decoration: none; color: var(--neon-orange);">Compare Builds</a>
-        @else
-            <a href="{{ route('login') }}" class="tab-btn" style="text-decoration: none; color: var(--neon-orange);">Compare Builds</a>
-        @endauth
-        
+        <a href="{{ auth()->check() ? route('builder.compare') : route('login') }}" class="tab-btn" style="text-decoration: none; color: var(--neon-orange);">Compare Builds</a>
     </div>
 
     <!-- VIEW: MANUAL BUILDER -->
-    <div id="view-manual" class="tab-view">
+    <div id="view-manual" class="tab-view" role="tabpanel" aria-labelledby="tab-manual">
         <div class="builder-layout">
             
             <!-- Left Side: Configuration Slots -->
@@ -47,10 +42,12 @@
                         </div>
                     @endif
 
+                    <!-- Updated to include 'storage' -->
                     @php
                         $slots = [
                             'cpu' => 'CPU', 'cooler' => 'CPU Cooler', 'mobo' => 'Motherboard',
-                            'ram' => 'RAM', 'gpu' => 'Graphics Card', 'psu' => 'Power Supply', 'case' => 'PC Case'
+                            'ram' => 'RAM', 'storage' => 'Storage', 'gpu' => 'Graphics Card', 
+                            'psu' => 'Power Supply', 'case' => 'PC Case'
                         ];
                     @endphp
 
@@ -105,14 +102,14 @@
                                                 {{ $scores['breakdown']['error'] }}
                                             @else
                                                 <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
-                                                    <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">{{ $scores['breakdown']['gpu_contribution'] }}</div>
-                                                    <div style="font-size: 10px; margin-bottom: 4px;">Formula: {{ $scores['breakdown']['gpu_math'] }}</div>
+                                                    <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">{{ $scores['breakdown']['gpu_contribution'] ?? '' }}</div>
+                                                    <div style="font-size: 10px; margin-bottom: 4px;">Formula: {{ $scores['breakdown']['gpu_math'] ?? '' }}</div>
                                                     
-                                                    <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">{{ $scores['breakdown']['cpu_contribution'] }}</div>
-                                                    <div style="font-size: 10px; margin-bottom: 4px;">Formula: {{ $scores['breakdown']['cpu_math'] }}</div>
+                                                    <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">{{ $scores['breakdown']['cpu_contribution'] ?? '' }}</div>
+                                                    <div style="font-size: 10px; margin-bottom: 4px;">Formula: {{ $scores['breakdown']['cpu_math'] ?? '' }}</div>
                                                     
-                                                    <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">{{ $scores['breakdown']['ram_contribution'] }}</div>
-                                                    <div style="font-size: 10px; margin-bottom: 4px;">Formula: {{ $scores['breakdown']['ram_math'] }}</div>
+                                                    <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">{{ $scores['breakdown']['ram_contribution'] ?? '' }}</div>
+                                                    <div style="font-size: 10px; margin-bottom: 4px;">Formula: {{ $scores['breakdown']['ram_math'] ?? '' }}</div>
                                                 </div>
 
                                                 <div style="border-top: 1px solid var(--border-color); padding-top: 6px; margin-bottom: 6px; font-size: 11px;">
@@ -123,47 +120,41 @@
                                                 </div>
 
                                                 <div style="border-top: 1px solid var(--border-color); padding-top: 6px;">
-                                                    <strong style="color: {{ $scores['breakdown']['multiplier'] < 1 ? 'var(--neon-orange)' : 'var(--neon-green)' }}; display: block; margin-bottom: 2px;">
+                                                    <strong style="color: {{ ($scores['breakdown']['multiplier'] ?? 1) < 1 ? 'var(--neon-orange)' : 'var(--neon-green)' }}; display: block; margin-bottom: 2px;">
                                                         System Balance Impact
                                                     </strong>
-                                                    <span style="color: var(--text-muted);">{{ $scores['breakdown']['balance'] }}</span>
+                                                    <span style="color: var(--text-muted);">{{ $scores['breakdown']['balance'] ?? 'Balanced' }}</span>
                                                 </div>
                                             @endif
                                         </div>
                                     </div>
                                 </div>
-                                <div style="color: var(--neon-blue); font-size: 12px; font-weight: bold; margin-bottom: 5px; padding: 2px 6px; border: 1px solid var(--neon-blue); display: inline-block; border-radius: 4px;">{{ $scores['tier'] }}</div>
-                                <div style="font-size: 24px; font-weight: bold; color: var(--text-main); margin-bottom: 5px;">{{ number_format($scores['overall']) }} pts</div>
+                                <div style="color: var(--neon-blue); font-size: 12px; font-weight: bold; margin-bottom: 5px; padding: 2px 6px; border: 1px solid var(--neon-blue); display: inline-block; border-radius: 4px;">{{ $scores['tier'] ?? 'N/A' }}</div>
+                                <div style="font-size: 24px; font-weight: bold; color: var(--text-main); margin-bottom: 5px;">{{ number_format($scores['overall'] ?? 0) }} pts</div>
                                 <div style="font-size: 12px; color: var(--text-muted);">
-                                    Gaming: <strong style="color: #fff;">{{ number_format($scores['gaming']) }}</strong><br>
-                                    Prod: <strong style="color: #fff;">{{ number_format($scores['productivity']) }}</strong>
+                                    Gaming: <strong style="color: #fff;">{{ number_format($scores['gaming'] ?? 0) }}</strong><br>
+                                    Prod: <strong style="color: #fff;">{{ number_format($scores['productivity'] ?? 0) }}</strong>
                                 </div>
                             </div>
 
                             <div class="score-gauge" style="position: relative; width: 80px; height: 80px;">
                                 @php
                                     $circumference = 2 * pi() * 34;
-                                    $offset = $circumference - ($scores['percentage'] / 100) * $circumference;
+                                    $offset = $circumference - (($scores['percentage'] ?? 0) / 100) * $circumference;
                                 @endphp
                                 
                                 <svg width="80" height="80" style="transform: rotate(-90deg);">
                                     <circle cx="40" cy="40" r="34" stroke="#222" stroke-width="8" fill="transparent" />
                                     <circle cx="40" cy="40" r="34" stroke="var(--neon-blue)" stroke-width="8" fill="transparent"
                                             stroke-dasharray="{{ $circumference }}"
-                                            stroke-dashoffset="{{ $circumference }}" 
+                                            stroke-dashoffset="{{ $circumference }}"
                                             stroke-linecap="round"
-                                            style="animation: fillGauge 1.5s ease-out forwards;" />
+                                            style="animation: fillGauge 1.5s ease-out forwards; --target-offset: {{ $offset }};" />
                                 </svg>
                                 
                                 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; color: var(--text-main);">
-                                    {{ $scores['percentage'] }}%
+                                    {{ $scores['percentage'] ?? 0 }}%
                                 </div>
-                                
-                                <style>
-                                    @keyframes fillGauge {
-                                        to { stroke-dashoffset: {{ $offset }}; }
-                                    }
-                                </style>
                             </div>
                         </div>
                     @endif
@@ -214,7 +205,6 @@
                                         <span style="font-size: 12px; font-weight: bold; color: {{ $compatibility['power_analytics']['color'] }};">{{ $compatibility['power_analytics']['load_percentage'] }}% Load</span>
                                     </div>
                                     
-                                    <!-- Visual Bar -->
                                     <div style="width: 100%; background: #2d2d2d; height: 6px; border-radius: 3px; margin-bottom: 8px; overflow: hidden; display: flex;">
                                         <div style="width: {{ min($compatibility['power_analytics']['load_percentage'], 100) }}%; background-color: {{ $compatibility['power_analytics']['color'] }}; transition: width 0.5s ease;"></div>
                                     </div>
@@ -245,12 +235,13 @@
     </div>
 
     <!-- VIEW: HARDWARE CATALOG -->
-    <div id="view-catalog" class="tab-view" style="display: none;">
+    <div id="view-catalog" class="tab-view" role="tabpanel" aria-labelledby="tab-catalog" style="display: none;">
         <div class="card">
             <h2>Live Database Catalog</h2>
             <p style="color: var(--text-muted);">Select a category to browse components.</p>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                @foreach(['cpu', 'cooler', 'mobo', 'ram', 'gpu', 'psu', 'case'] as $cat)
+                <!-- Updated to include 'storage' -->
+                @foreach(['cpu', 'cooler', 'mobo', 'ram', 'storage', 'gpu', 'psu', 'case'] as $cat)
                     <a href="{{ route('builder.select', $cat) }}" class="btn-secondary" style="text-decoration: none; text-transform: uppercase;">Browse {{ $cat }}s</a>
                 @endforeach
             </div>
@@ -258,7 +249,7 @@
     </div>
 
     <!-- VIEW: AUTO-BUILD -->
-    <div id="view-autobuild" class="tab-view" style="display: none;">
+    <div id="view-autobuild" class="tab-view" role="tabpanel" aria-labelledby="tab-autobuild" style="display: none;">
         <div class="card" style="padding: 40px; max-width: 800px; margin: 0 auto;">
             <div style="text-align: center; margin-bottom: 40px;">
                 <h1 style="font-size: 40px; margin: 0; color: var(--neon-blue);">⚡</h1>
@@ -290,7 +281,6 @@
                     </div>
                 </div>
 
-                <!-- Budget Range Inputs -->
                 <div class="form-group" style="margin-top: 20px;">
                     <label class="form-label" style="font-size: 16px; text-align: center;">Target Budget Range (RM)</label>
                     <div style="display: flex; gap: 20px; justify-content: center; align-items: center; max-width: 500px; margin: 0 auto;">
@@ -314,7 +304,7 @@
     </div>
 
     <!-- VIEW: SAVED BUILDS WORKSPACE -->
-    <div id="view-saved" class="tab-view" style="display: none;">
+    <div id="view-saved" class="tab-view" role="tabpanel" aria-labelledby="tab-saved" style="display: none;">
         <div class="card">
             <h2 style="margin-top: 0;">Your Workspace</h2>
             <p style="color: var(--text-muted); margin-bottom: 30px;">Manage, load, and compare your saved configurations.</p>
@@ -353,7 +343,6 @@
                                     
                                     <a href="{{ route('builder.compare', ['build1' => $saved->id]) }}" class="btn-secondary" style="flex: 1; padding: 10px; text-decoration: none; text-align: center; display: inline-block;">Compare</a>
                                     
-                                    <!-- NEW: Delete Button -->
                                     <form action="{{ route('builder.delete', $saved->id) }}" method="POST" style="margin: 0;" onsubmit="return confirm('Are you sure you want to permanently delete this build?');">
                                         @csrf
                                         <button type="submit" class="btn-secondary" style="color: var(--neon-red); border-color: var(--neon-red); padding: 10px; height: 100%; display: flex; align-items: center; justify-content: center;" title="Delete Build">
@@ -375,32 +364,52 @@
                 <div style="text-align: center; padding: 40px; background: var(--bg-dark); border-radius: 8px;">
                     <h3 style="color: var(--text-muted);">Guest Workspace</h3>
                     <p style="color: var(--text-muted); margin-bottom: 20px;">Please log in or register to permanently save your PC builds across devices.</p>
-                    <a href="/login" class="btn-primary" style="text-decoration: none;">Log In</a>
+                    <a href="{{ route('login') }}" class="btn-primary" style="text-decoration: none;">Log In</a>
                 </div>
             @endauth
         </div>
     </div>
 
-    <!-- Simple JavaScript for Tab Switching -->
+    <!-- Dynamic Styles & JavaScript -->
+    <style>
+        @keyframes fillGauge {
+            to { stroke-dashoffset: var(--target-offset); }
+        }
+    </style>
+
     <script>
         function switchTab(tabId) {
-            document.querySelectorAll('.tab-view').forEach(view => {
-                view.style.display = 'none';
-            });
+            document.querySelectorAll('.tab-view').forEach(view => view.style.display = 'none');
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('tab-active');
+                btn.setAttribute('aria-selected', 'false');
             });
-            document.getElementById('view-' + tabId).style.display = 'block';
-            document.getElementById('tab-' + tabId).classList.add('tab-active');
+
+            const targetView = document.getElementById('view-' + tabId);
+            const targetBtn = document.getElementById('tab-' + tabId);
+
+            if (targetView && targetBtn) {
+                targetView.style.display = 'block';
+                targetBtn.classList.add('tab-active');
+                targetBtn.setAttribute('aria-selected', 'true');
+                window.location.hash = tabId;
+            }
         }
+
+        // Auto-activate tab from URL hash on page load
+        document.addEventListener("DOMContentLoaded", function() {
+            const hash = window.location.hash.replace('#', '');
+            if (hash && document.getElementById('view-' + hash)) {
+                switchTab(hash);
+            }
+        });
     </script>
 
-    <!-- WELCOME BACK TOAST MODULE (Self-Contained) -->
+    <!-- WELCOME TOAST MODULE -->
     @php
-        $showWelcome = false;
-        if (!session()->has('has_been_welcomed_builder')) {
+        $showWelcome = !session()->has('has_been_welcomed_builder');
+        if ($showWelcome) {
             session(['has_been_welcomed_builder' => true]);
-            $showWelcome = true;
             $userName = auth()->check() ? auth()->user()->name : 'User';
         }
     @endphp
@@ -414,14 +423,13 @@
         <script>
             document.addEventListener("DOMContentLoaded", function() {
                 setTimeout(function() {
-                    let toast = document.getElementById('welcome-toast');
+                    const toast = document.getElementById('welcome-toast');
                     if (toast) {
                         toast.style.opacity = '0';
                         toast.style.transform = 'translateY(20px)';
-                        
                         setTimeout(() => toast.remove(), 500);
                     }
-                }, 3000); 
+                }, 3000);
             });
         </script>
     @endif

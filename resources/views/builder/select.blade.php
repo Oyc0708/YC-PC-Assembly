@@ -186,6 +186,14 @@
                                                 <span><strong>Type:</strong> {{ $part->type }}</span>
                                                 <span><strong>Capacity:</strong> {{ $part->capacity }} GB</span>
                                                 <span><strong>Speed:</strong> {{ $part->speed }} MHz</span>
+                                            @elseif($category === 'storage')
+                                                <span><strong>Type:</strong> {{ $part->type }}</span>
+                                                <span><strong>Capacity:</strong> {{ $part->capacity }} GB</span>
+                                                <span><strong>Form Factor:</strong> {{ $part->form_factor }}</span>
+                                                <span><strong>Interface:</strong> {{ $part->interface }}</span>
+                                                @if($part->nvme === 'true' || $part->nvme === true)
+                                                    <span><strong>NVMe:</strong> Yes</span>
+                                                @endif
                                             @elseif($category === 'psu')
                                                 <span><strong>Wattage:</strong> {{ $part->wattage }}W</span>
                                             @elseif($category === 'case')
@@ -223,7 +231,7 @@
                                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
                                             @foreach($part->prices->sortBy('price') as $vendorPrice)
                                                 <a href="{{ $vendorPrice->url }}" target="_blank" 
-                                                   style="display: flex; flex-direction: column; background: #111; border: 1px solid {{ $vendorPrice->in_stock ? '#333' : '#4a0000' }}; padding: 10px; border-radius: 6px; text-decoration: none; transition: border-color 0.2s;">
+                                                style="display: flex; flex-direction: column; background: #111; border: 1px solid {{ $vendorPrice->in_stock ? '#333' : '#4a0000' }}; padding: 10px; border-radius: 6px; text-decoration: none; transition: border-color 0.2s;">
                                                     <span style="color: #fff; font-size: 12px; font-weight: bold; margin-bottom: 4px;">{{ $vendorPrice->vendor }}</span>
                                                     @if($vendorPrice->in_stock)
                                                         <span style="color: var(--neon-green); font-size: 14px; font-weight: bold;">RM {{ number_format($vendorPrice->price, 2) }}</span>

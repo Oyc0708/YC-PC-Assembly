@@ -46,13 +46,16 @@
                                                     
                                                     <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">{{ $scores1['breakdown']['ram_contribution'] ?? 'N/A' }}</div>
                                                     <div style="font-size: 10px; margin-bottom: 4px;">Formula: {{ $scores1['breakdown']['ram_math'] ?? 'N/A' }}</div>
+
+                                                    <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">{{ $scores1['breakdown']['storage_contribution'] ?? 'N/A' }}</div>
+                                                    <div style="font-size: 10px; margin-bottom: 4px;">Formula: {{ $scores1['breakdown']['storage_math'] ?? 'N/A' }}</div>
                                                 </div>
 
                                                 <div style="border-top: 1px solid var(--border-color); padding-top: 6px; margin-bottom: 6px; font-size: 11px;">
                                                     <div style="color: var(--text-main); font-weight: bold;">Gaming Focus:</div>
-                                                    <div style="color: var(--text-muted);">(GPU × 65%) + (CPU × 25%) + (RAM × 10%)</div>
+                                                    <div style="color: var(--text-muted);">(GPU × 60%) + (CPU × 25%) + (RAM × 10%) + (Storage × 5%)</div>
                                                     <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">Productivity Focus:</div>
-                                                    <div style="color: var(--text-muted);">(CPU × 50%) + (RAM × 30%) + (GPU × 20%)</div>
+                                                    <div style="color: var(--text-muted);">(CPU × 45%) + (RAM × 25%) + (GPU × 20%) + (Storage × 10%)</div>
                                                 </div>
 
                                                 <div style="border-top: 1px solid var(--border-color); padding-top: 6px;">
@@ -91,21 +94,29 @@
                                     <div class="info-tooltip">
                                         i
                                         <div class="tooltip-content" style="width: 320px; text-align: left;">
-                                            <strong style="color: var(--accent-blue); display: block; margin-bottom: 8px; font-size: 14px;">Score Calculation Breakdown</strong>
+                                            <strong style="color: var(--accent-blue); display: block; margin-bottom: 8px; font-size: 14px;">Heuristic Score Breakdown</strong>
                                             @if(isset($scores2['breakdown']['error']))
                                                 {{ $scores2['breakdown']['error'] }}
                                             @else
                                                 <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 8px;">
-                                                    <div>• {{ $scores2['breakdown']['gpu_contribution'] ?? 'N/A' }}</div>
-                                                    <div>• {{ $scores2['breakdown']['cpu_contribution'] ?? 'N/A' }}</div>
-                                                    <div>• {{ $scores2['breakdown']['ram_contribution'] ?? 'N/A' }}</div>
+                                                    <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">{{ $scores2['breakdown']['gpu_contribution'] ?? 'N/A' }}</div>
+                                                    <div style="font-size: 10px; margin-bottom: 4px;">Formula: {{ $scores2['breakdown']['gpu_math'] ?? 'N/A' }}</div>
+                                                    
+                                                    <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">{{ $scores2['breakdown']['cpu_contribution'] ?? 'N/A' }}</div>
+                                                    <div style="font-size: 10px; margin-bottom: 4px;">Formula: {{ $scores2['breakdown']['cpu_math'] ?? 'N/A' }}</div>
+                                                    
+                                                    <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">{{ $scores2['breakdown']['ram_contribution'] ?? 'N/A' }}</div>
+                                                    <div style="font-size: 10px; margin-bottom: 4px;">Formula: {{ $scores2['breakdown']['ram_math'] ?? 'N/A' }}</div>
+
+                                                    <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">{{ $scores2['breakdown']['storage_contribution'] ?? 'N/A' }}</div>
+                                                    <div style="font-size: 10px; margin-bottom: 4px;">Formula: {{ $scores2['breakdown']['storage_math'] ?? 'N/A' }}</div>
                                                 </div>
 
                                                 <div style="border-top: 1px solid var(--border-color); padding-top: 6px; margin-bottom: 6px; font-size: 11px;">
-                                                    <div style="color: var(--text-main); font-weight: bold;">Gaming Score:</div>
-                                                    <div style="color: var(--text-muted);">({{ $scores2['breakdown']['gaming'] ?? 'N/A' }})</div>
-                                                    <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">Productivity Score:</div>
-                                                    <div style="color: var(--text-muted);">({{ $scores2['breakdown']['formula_prod'] ?? 'N/A' }})</div>
+                                                    <div style="color: var(--text-main); font-weight: bold;">Gaming Focus:</div>
+                                                    <div style="color: var(--text-muted);">(GPU × 60%) + (CPU × 25%) + (RAM × 10%) + (Storage × 5%)</div>
+                                                    <div style="color: var(--text-main); font-weight: bold; margin-top: 4px;">Productivity Focus:</div>
+                                                    <div style="color: var(--text-muted);">(CPU × 45%) + (RAM × 25%) + (GPU × 20%) + (Storage × 10%)</div>
                                                 </div>
 
                                                 <div style="border-top: 1px solid var(--border-color); padding-top: 6px;">
@@ -132,6 +143,7 @@
                 'cooler'      => ['label' => 'Cooler', 'category' => 'cooler'],
                 'motherboard' => ['label' => 'Motherboard', 'category' => 'mobo'],
                 'ram'         => ['label' => 'RAM', 'category' => 'ram'],
+                'storage'     => ['label' => 'Storage', 'category' => 'storage'],
                 'gpu'         => ['label' => 'Graphics Card', 'category' => 'gpu'],
                 'psu'         => ['label' => 'Power Supply', 'category' => 'psu'],
                 'pcCase'      => ['label' => 'PC Case', 'category' => 'case']
@@ -176,6 +188,10 @@
                                 @if($part->speed)<span class="spec-badge">Speed: <strong>{{ $part->speed }} MHz</strong></span>@endif
                                 @if($part->capacity)<span class="spec-badge">Capacity: <strong>{{ $part->capacity }} GB</strong></span>@endif
                                 @if($part->cas_latency)<span class="spec-badge">CL: <strong>CL{{ $part->cas_latency }}</strong></span>@endif
+                            @elseif($config['category'] === 'storage')
+                                @if($part->capacity)<span class="spec-badge">Capacity: <strong>{{ $part->capacity }} GB</strong></span>@endif
+                                @if(isset($part->nvme))<span class="spec-badge">Type: <strong>{{ $part->nvme ? 'NVMe' : 'SATA' }}</strong></span>@endif
+                                @if($part->interface)<span class="spec-badge">Interface: <strong>{{ $part->interface }}</strong></span>@endif
                             @elseif($config['category'] === 'gpu')
                                 @if($part->memory)<span class="spec-badge">VRAM: <strong>{{ $part->memory }} GB</strong></span>@endif
                                 @if($part->clock_speed)<span class="spec-badge">Core Clock: <strong>{{ $part->clock_speed }} MHz</strong></span>@endif
@@ -227,6 +243,10 @@
                                 @if($part->speed)<span class="spec-badge">Speed: <strong>{{ $part->speed }} MHz</strong></span>@endif
                                 @if($part->capacity)<span class="spec-badge">Capacity: <strong>{{ $part->capacity }} GB</strong></span>@endif
                                 @if($part->cas_latency)<span class="spec-badge">CL: <strong>CL{{ $part->cas_latency }}</strong></span>@endif
+                            @elseif($config['category'] === 'storage')
+                                @if($part->capacity)<span class="spec-badge">Capacity: <strong>{{ $part->capacity }} GB</strong></span>@endif
+                                @if(isset($part->nvme))<span class="spec-badge">Type: <strong>{{ $part->nvme ? 'NVMe' : 'SATA' }}</strong></span>@endif
+                                @if($part->interface)<span class="spec-badge">Interface: <strong>{{ $part->interface }}</strong></span>@endif
                             @elseif($config['category'] === 'gpu')
                                 @if($part->memory)<span class="spec-badge">VRAM: <strong>{{ $part->memory }} GB</strong></span>@endif
                                 @if($part->clock_speed)<span class="spec-badge">Core Clock: <strong>{{ $part->clock_speed }} MHz</strong></span>@endif

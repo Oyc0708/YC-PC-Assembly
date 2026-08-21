@@ -6,7 +6,6 @@ class ValidationEngine
 {
     /**
      * Safely extract a property whether the item is an Object (Eloquent Model) or an Array.
-     * Changed to PUBLIC so the Auto-Builder can use it during part selection.
      */
     public function getProp($item, string $key, $default = null)
     {
@@ -21,7 +20,6 @@ class ValidationEngine
 
     /**
      * Normalize strings to prevent false mismatches (e.g., "AM5 " vs "am5").
-     * Changed to PUBLIC so the Auto-Builder can use it to strictly match sockets and RAM.
      */
     public function normalizeStr($str): string
     {
@@ -34,7 +32,6 @@ class ValidationEngine
     /**
      * Smart Form Factor Hierarchy
      * Assigns a numeric size value to safely compare cases and motherboards.
-     * Changed to PUBLIC so the Auto-Builder can verify case dimensions before selecting.
      */
     public function getFormFactorSize(string $ff): int
     {
@@ -54,19 +51,20 @@ class ValidationEngine
         $issues = [];
         $warnings = [];
         
-        // Base wattage for motherboard, fans, and storage
+        // Base wattage for motherboard, fans, and controller board
         $estWattage = 50; 
 
         // Safely extract parts
-        $cpu    = $build['cpu'] ?? null;
-        $mobo   = $build['mobo'] ?? null;
-        $ram    = $build['ram'] ?? null;
-        $gpu    = $build['gpu'] ?? null;
-        $cooler = $build['cooler'] ?? null;
-        $case   = $build['case'] ?? null;
-        $psu    = $build['psu'] ?? null;
+        $cpu     = $build['cpu'] ?? null;
+        $mobo    = $build['mobo'] ?? null;
+        $ram     = $build['ram'] ?? null;
+        $gpu     = $build['gpu'] ?? null;
+        $storage = $build['storage'] ?? null;
+        $cooler  = $build['cooler'] ?? null;
+        $case    = $build['case'] ?? null;
+        $psu     = $build['psu'] ?? null;
 
-        // Safely extract all required properties
+        // Safely extract properties
         $cpuName   = $this->getProp($cpu, 'name', 'CPU');
         $cpuSocket = $this->normalizeStr($this->getProp($cpu, 'socket'));
         $cpuTdp    = (int) $this->getProp($cpu, 'tdp', 65);
@@ -83,6 +81,8 @@ class ValidationEngine
         $gpuLength = $this->getProp($gpu, 'length_mm');
         $gpuTdp    = (int) $this->getProp($gpu, 'tdp', 0);
 
+        $storageName = $this->getProp($storage, 'name', 'Storage');
+
         $coolerName   = $this->getProp($cooler, 'name', 'Cooler');
         $coolerMaxTdp = $this->getProp($cooler, 'max_tdp');
 
@@ -92,7 +92,6 @@ class ValidationEngine
 
         $psuName    = $this->getProp($psu, 'name', 'PSU');
         $psuWattage = $this->getProp($psu, 'wattage');
-
 
         // 1. CPU & Motherboard Socket Compatibility
         if ($cpu && $mobo) {
@@ -112,7 +111,14 @@ class ValidationEngine
             }
         }
 
-        // 3. CPU TDP vs Cooler Thermal Capacity
+        // 3. Storage Availability Check
+        if (!$storage) {
+            $warnings[] = "No storage drive selected. You will need a storage drive to install an operating system.";
+        } else {
+            $estWattage += 10; // Nominal power allocation for storage drives
+        }
+
+        // 4. CPU TDP vs Cooler Thermal Capacity
         if ($cpu && $cooler) {
             if ($coolerMaxTdp === null) {
                 $warnings[] = "Missing cooling capacity data for the {$coolerName}. Verify it can cool a {$cpuTdp}W CPU.";
@@ -124,7 +130,7 @@ class ValidationEngine
             }
         }
 
-        // 4. GPU Length vs Case Physical Clearance
+        // 5. GPU Length vs Case Physical Clearance
         if ($gpu && $case) {
             if ($gpuLength === null || $caseMaxGpuLength === null) {
                 $warnings[] = "Missing physical dimension data. Please manually verify the {$gpuName} fits inside the {$caseName}.";
@@ -133,7 +139,7 @@ class ValidationEngine
             }
         }
 
-        // 5. Smart Form Factor Clearance
+        // 6. Smart Form Factor Clearance
         if ($mobo && $case && $moboFormFactor && $caseFormFactor) {
             $moboSize = $this->getFormFactorSize($moboFormFactor);
             $caseSize = $this->getFormFactorSize($caseFormFactor);
@@ -143,7 +149,7 @@ class ValidationEngine
             }
         }
 
-        // 6. System Power Draw vs PSU Wattage Output
+        // 7. System Power Draw vs PSU Wattage Output
         if ($cpu) $estWattage += $cpuTdp;
         if ($gpu) $estWattage += $gpuTdp;
 
@@ -160,25 +166,16 @@ class ValidationEngine
             }
         }
 
+        $powerAnalytics = isset($psu) ? $this->analyzePowerEfficiency($estWattage, $psuWattage) : null;
+        $bottleneckAnalytics = ($cpu && $gpu) ? $this->calculateBottleneck($cpu, $gpu) : null;
+
         return [
             'is_valid'          => count($issues) === 0,
-            'issues'            => $issues,
             'warnings'          => $warnings,
-            'estimated_wattage' => $estWattage
-        ];
-
-        $estWattage = ((int)($build['cpu']->tdp ?? 65)) + ((int)($build['gpu']->tdp ?? 150)) + 50;
-        
-        $powerAnalytics = isset($build['psu']) ? $this->analyzePowerEfficiency($estWattage, $build['psu']->wattage) : null;
-        $bottleneckAnalytics = (isset($build['cpu']) && isset($build['gpu'])) ? $this->calculateBottleneck($build['cpu'], $build['gpu']) : null;
-
-        return [
-            'is_valid' => empty($issues), // (Assuming you have an $issues array)
-            'warnings' => $warnings ?? [], // (Assuming you have a $warnings array)
-            'issues' => $issues ?? [],
+            'issues'            => $issues,
             'estimated_wattage' => $estWattage,
-            'power_analytics' => $powerAnalytics,
-            'bottleneck' => $bottleneckAnalytics
+            'power_analytics'   => $powerAnalytics,
+            'bottleneck'        => $bottleneckAnalytics
         ];
     }
 
@@ -199,24 +196,30 @@ class ValidationEngine
             ];
         }
 
-        // 1. CPU Heuristic Score (Values Cores, Boost Clocks, and thermal headroom)
+        // 1. CPU Heuristic Score
         $cpuCores = (int) $this->getProp($build['cpu'] ?? null, 'cores', 2);
         $cpuBoost = (float) $this->getProp($build['cpu'] ?? null, 'boost_clock', 3.0);
         $cpuTdp   = (int) $this->getProp($build['cpu'] ?? null, 'tdp', 65);
         $cpuScore = (int) round(($cpuCores * $cpuBoost * 120) + ($cpuTdp * 5));
 
-        // 2. GPU Heuristic Score (Values VRAM capacity, core clocks, and power draw proxy)
+        // 2. GPU Heuristic Score
         $gpuVram  = (int) $this->getProp($build['gpu'] ?? null, 'memory', 2);
         $gpuClock = (int) $this->getProp($build['gpu'] ?? null, 'clock_speed', 1000);
         $gpuTdp   = (int) $this->getProp($build['gpu'] ?? null, 'tdp', 75);
         $gpuScore = (int) round(($gpuVram * 200) + ($gpuClock * 1.5) + ($gpuTdp * 10));
 
-        // 3. RAM Heuristic Score (Values Capacity and Megatransfers)
+        // 3. RAM Heuristic Score
         $ramCap   = (int) $this->getProp($build['ram'] ?? null, 'capacity', 8);
         $ramSpeed = (int) $this->getProp($build['ram'] ?? null, 'speed', 2133);
         $ramScore = (int) round(($ramCap * 80) + ($ramSpeed * 0.8));
 
-        // Dynamic Bottleneck Detection (Using heuristic ratios)
+        // 4. Storage Heuristic Score
+        $storageCap  = (int) $this->getProp($build['storage'] ?? null, 'capacity', 256);
+        $storageNvme = $this->getProp($build['storage'] ?? null, 'nvme');
+        $isNvme      = ($storageNvme === 'true' || $storageNvme === true || $storageNvme === 1);
+        $storageScore= (int) round(($storageCap * 0.4) + ($isNvme ? 800 : 200));
+
+        // Dynamic Bottleneck Detection
         $bottleneckPenalty = 1.0;
         $balanceMsg = 'Optimal balance (No penalty applied).';
 
@@ -233,16 +236,16 @@ class ValidationEngine
             }
         }
 
-        // Apply weights and scale up to a standard benchmark point system (~15000 max)
-        $scalingFactor = 1.6;
-        $gamingRaw = ($gpuScore * 0.65) + ($cpuScore * 0.25) + ($ramScore * 0.10);
-        $prodRaw   = ($cpuScore * 0.50) + ($ramScore * 0.30) + ($gpuScore * 0.20);
+        // Scaled score distribution incorporating storage (load times & file output)
+        $scalingFactor = 1.5;
+        $gamingRaw = ($gpuScore * 0.60) + ($cpuScore * 0.25) + ($ramScore * 0.10) + ($storageScore * 0.05);
+        $prodRaw   = ($cpuScore * 0.45) + ($ramScore * 0.25) + ($gpuScore * 0.20) + ($storageScore * 0.10);
 
         $gaming = (int) round($gamingRaw * $scalingFactor * $bottleneckPenalty);
         $productivity = (int) round($prodRaw * $scalingFactor * $bottleneckPenalty);
         $overall = (int) round(($gaming * 0.55) + ($productivity * 0.45));
 
-        // Tiering logic based on the new scaling
+        // Tiering logic
         $tier = 'Entry-Level (1080p Low)';
         if ($overall >= 11500) $tier = 'God Tier (4K Ultra)';
         elseif ($overall >= 8500) $tier = 'Enthusiast (1440p Ultra)';
@@ -251,16 +254,18 @@ class ValidationEngine
 
         $percentage = max(0, min(100, ($overall / 13000) * 100));
 
-        // Detailed mathematical breakdown for the tooltip
+        // Detailed mathematical breakdown
         $breakdown = [
-            'cpu_math' => "({$cpuCores}C × {$cpuBoost}GHz × 120) + {$cpuTdp}W",
-            'gpu_math' => "({$gpuVram}GB × 200) + {$gpuClock}MHz + {$gpuTdp}W",
-            'ram_math' => "({$ramCap}GB × 80) + {$ramSpeed}MHz",
-            'gpu_contribution' => "GPU Synthetic: {$gpuScore}",
-            'cpu_contribution' => "CPU Synthetic: {$cpuScore}",
-            'ram_contribution' => "RAM Synthetic: {$ramScore}",
-            'balance'          => $balanceMsg,
-            'multiplier'       => $bottleneckPenalty
+            'cpu_math'             => "({$cpuCores}C × {$cpuBoost}GHz × 120) + {$cpuTdp}W",
+            'gpu_math'             => "({$gpuVram}GB × 200) + {$gpuClock}MHz + {$gpuTdp}W",
+            'ram_math'             => "({$ramCap}GB × 80) + {$ramSpeed}MHz",
+            'storage_math'         => "({$storageCap}GB × 0.4) + " . ($isNvme ? '800 (NVMe)' : '200 (SATA)'),
+            'gpu_contribution'     => "GPU Synthetic: {$gpuScore}",
+            'cpu_contribution'     => "CPU Synthetic: {$cpuScore}",
+            'ram_contribution'     => "RAM Synthetic: {$ramScore}",
+            'storage_contribution' => "Storage Synthetic: {$storageScore}",
+            'balance'              => $balanceMsg,
+            'multiplier'           => $bottleneckPenalty
         ];
 
         return [
@@ -307,21 +312,18 @@ class ValidationEngine
 
     /**
      * Heuristic Bottleneck Calculator
-     * Compares raw CPU output to GPU output to find massive generational or tier mismatches.
      */
     public function calculateBottleneck($cpu, $gpu)
     {
         if (!$cpu || !$gpu) return null;
 
-        // Calculate rough theoretical throughput
-        $cpuPower = ((int)$cpu->cores * (float)($cpu->boost_clock ?? $cpu->base_clock)) * 10; 
-        $gpuPower = ((int)$gpu->memory * ((int)$gpu->clock_speed / 100));
+        $cpuPower = ((int)$this->getProp($cpu, 'cores', 2) * (float)$this->getProp($cpu, 'boost_clock', 3.0)) * 10; 
+        $gpuPower = ((int)$this->getProp($gpu, 'memory', 2) * ((int)$this->getProp($gpu, 'clock_speed', 1000) / 100));
 
         if ($gpuPower <= 0) return null;
 
         $ratio = $cpuPower / $gpuPower;
 
-        // Baseline acceptable ratio is around 1.0 to 2.5
         $status = 'Balanced';
         $color = 'var(--neon-green)';
         $warning = 'CPU and GPU are a great match.';

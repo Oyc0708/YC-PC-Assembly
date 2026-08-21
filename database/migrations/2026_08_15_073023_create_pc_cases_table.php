@@ -15,7 +15,7 @@ class CreatePcCasesTable extends Migration
     {
         Schema::create('pc_cases', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('name', 500);
+            $table->string('name', 100)->unique();
             $table->string('manufacturer');
             $table->integer('max_gpu_length_mm')->nullable();
             $table->string('form_factor')->nullable();

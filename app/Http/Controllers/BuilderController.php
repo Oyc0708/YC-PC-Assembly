@@ -4,20 +4,21 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Services\ValidationEngine;
-use App\Models\{Cpu, Cooler, Motherboard, Ram, Gpu, Psu, PcCase, Build};
+use App\Models\{Cpu, Cooler, Motherboard, Ram, Gpu, Psu, PcCase, Storage, Build};
 
 class BuilderController extends Controller
 {
     protected ValidationEngine $validationEngine;
 
     protected array $modelMap = [
-        'cpu'    => Cpu::class,
-        'cooler' => Cooler::class,
-        'mobo'   => Motherboard::class,
-        'ram'    => Ram::class,
-        'gpu'    => Gpu::class,
-        'psu'    => Psu::class,
-        'case'   => PcCase::class,
+        'cpu'     => Cpu::class,
+        'cooler'  => Cooler::class,
+        'mobo'    => Motherboard::class,
+        'ram'     => Ram::class,
+        'gpu'     => Gpu::class,
+        'psu'     => Psu::class,
+        'case'    => PcCase::class,
+        'storage' => Storage::class,
     ];
 
     public function __construct(ValidationEngine $validationEngine)
@@ -75,9 +76,10 @@ class BuilderController extends Controller
                 $gpuLen = (int)($currentBuild['gpu']->length_mm ?? 0);
                 $query->where('max_gpu_length_mm', '>=', $gpuLen);
             } elseif ($category === 'psu' && (isset($currentBuild['cpu']) || isset($currentBuild['gpu']))) {
-                $estWatts = ((int)($currentBuild['cpu']->tdp ?? 65) + (int)($currentBuild['gpu']->tdp ?? 150) + 50) * 1.25;
+                $estWatts = ((int)($currentBuild['cpu']->tdp ?? 65) + (int)($currentBuild['gpu']->tdp ?? 150) + 65) * 1.25; // 65 for mobo/storage base
                 $query->where('wattage', '>=', $estWatts);
             }
+            // Note: Storage standardly connects via SATA or M.2, which most boards support, so deep strict filtering is skipped for flexibility.
         }
 
         // -------------------------------------------------------------
@@ -114,8 +116,12 @@ class BuilderController extends Controller
             $query->whereIn($column, (array) $request->ram_types);
         }
 
-        if (in_array($category, ['mobo', 'case']) && $request->filled('form_factors')) {
+        if (in_array($category, ['mobo', 'case', 'storage']) && $request->filled('form_factors')) {
             $query->whereIn('form_factor', (array) $request->form_factors);
+        }
+        
+        if ($category === 'storage' && $request->filled('types')) {
+            $query->whereIn('type', (array) $request->types);
         }
 
         // -------------------------------------------------------------
@@ -135,6 +141,10 @@ class BuilderController extends Controller
         if ($category === 'psu') {
             if ($request->filled('min_wattage')) $query->where('wattage', '>=', (int)$request->min_wattage);
         }
+        
+        if ($category === 'storage') {
+            if ($request->filled('min_capacity')) $query->where('capacity', '>=', (int)$request->min_capacity);
+        }
 
         // -------------------------------------------------------------
         // 5. EXTRACT DYNAMIC SIDEBAR OPTIONS DIRECTLY FROM DATABASE
@@ -152,17 +162,20 @@ class BuilderController extends Controller
             $col = $category === 'ram' ? 'type' : 'ram_type';
             $filterOptions['ram_types'] = $model::whereNotNull($col)->distinct()->orderBy($col)->pluck($col);
         }
-        if (in_array($category, ['mobo', 'case'])) {
+        if (in_array($category, ['mobo', 'case', 'storage'])) {
             $filterOptions['form_factors'] = $model::whereNotNull('form_factor')->distinct()->orderBy('form_factor')->pluck('form_factor');
         }
+        if ($category === 'storage') {
+            $filterOptions['types'] = $model::whereNotNull('type')->distinct()->orderBy('type')->pluck('type');
+        }
 
-        // UPDATED: Eager load the component prices here!
+        // Eager load the component prices
         $parts = $query->with('prices')->orderBy('price', 'asc')->paginate(20)->withQueryString();
 
         // Calculate active build summary metrics
         $selectedCount = count(array_filter($currentBuild));
         $totalCost = collect($currentBuild)->filter()->sum('price');
-        $estWattage = (int)($currentBuild['cpu']->tdp ?? 65) + (int)($currentBuild['gpu']->tdp ?? 150) + 50;
+        $estWattage = (int)($currentBuild['cpu']->tdp ?? 65) + (int)($currentBuild['gpu']->tdp ?? 150) + 65; // Added slightly more base wattage
 
         return view('builder.select', compact(
             'parts',
@@ -209,7 +222,7 @@ class BuilderController extends Controller
         return redirect()->route('builder.index');
     }
 
-    // 5. Smart Spec-Driven Auto-Build Engine (Safe Collection Sorting)
+    // 5. Smart Spec-Driven Auto-Build Engine
     public function generateAutoBuild(Request $request)
     {
         $request->validate([
@@ -222,28 +235,27 @@ class BuilderController extends Controller
         $maxBudget = (float) $request->max_budget;
         $workload = $request->use_case;
 
-        // Smart Budget Allocations based on use-case
+        // Adjusted Allocations to include Storage
         if ($workload === 'video-editing') {
-            $alloc = ['cpu' => 0.35, 'mobo' => 0.10, 'ram' => 0.15, 'gpu' => 0.25, 'case' => 0.05, 'psu' => 0.05, 'cooler' => 0.05];
+            $alloc = ['cpu' => 0.30, 'mobo' => 0.10, 'ram' => 0.10, 'gpu' => 0.25, 'storage' => 0.10, 'case' => 0.05, 'psu' => 0.05, 'cooler' => 0.05];
         } elseif ($workload === 'office') {
-            $alloc = ['cpu' => 0.40, 'mobo' => 0.15, 'ram' => 0.15, 'gpu' => 0.10, 'case' => 0.08, 'psu' => 0.07, 'cooler' => 0.05];
+            $alloc = ['cpu' => 0.35, 'mobo' => 0.15, 'ram' => 0.10, 'gpu' => 0.10, 'storage' => 0.10, 'case' => 0.08, 'psu' => 0.07, 'cooler' => 0.05];
         } else { // Gaming
-            $alloc = ['cpu' => 0.20, 'mobo' => 0.10, 'ram' => 0.10, 'gpu' => 0.45, 'case' => 0.05, 'psu' => 0.05, 'cooler' => 0.05];
+            $alloc = ['cpu' => 0.20, 'mobo' => 0.10, 'ram' => 0.10, 'gpu' => 0.40, 'storage' => 0.05, 'case' => 0.05, 'psu' => 0.05, 'cooler' => 0.05];
         }
 
         try {
             $build = [];
             $totalCost = 0;
-            $estWattage = 50; // Base wattage for board and drives
+            $estWattage = 65; // Base wattage for board and drives
 
             // ==============================================================
-            // STEP 1: CPU (Dictates Socket & Base TDP)
+            // STEP 1: CPU
             // ==============================================================
             $cpuBudget = $maxBudget * $alloc['cpu'] * 1.2;
             $cpu = Cpu::whereRaw('CAST(price AS DECIMAL(10,2)) <= ?', [$cpuBudget])
                     ->get()
                     ->sortByDesc(function ($c) {
-                          // Safely defaults to 0 if columns don't exist
                         $cores = (int) ($c->cores ?? 2);
                         $clock = (float) ($c->boost_clock ?? $c->base_clock ?? 3.0);
                           return ($cores * 100) + $clock;
@@ -258,7 +270,7 @@ class BuilderController extends Controller
             $socket = $this->validationEngine->normalizeStr($cpu->socket ?? '');
 
             // ==============================================================
-            // STEP 2: MOTHERBOARD (Must match Socket)
+            // STEP 2: MOTHERBOARD
             // ==============================================================
             $moboBudget = $maxBudget * $alloc['mobo'] * 1.3;
             $mobo = Motherboard::whereRaw('CAST(price AS DECIMAL(10,2)) <= ?', [$moboBudget])
@@ -283,7 +295,7 @@ class BuilderController extends Controller
             $moboFormSize = $this->validationEngine->getFormFactorSize($mobo->form_factor ?? '');
 
             // ==============================================================
-            // STEP 3: RAM (Must match Generation)
+            // STEP 3: RAM
             // ==============================================================
             $ramBudget = $maxBudget * $alloc['ram'] * 1.3;
             $ram = Ram::whereRaw('CAST(price AS DECIMAL(10,2)) <= ?', [$ramBudget])
@@ -310,7 +322,25 @@ class BuilderController extends Controller
             $totalCost += $ram->price;
 
             // ==============================================================
-            // STEP 4: GPU (Dictates Physical Clearance)
+            // STEP 4: STORAGE
+            // ==============================================================
+            $storageBudget = $maxBudget * $alloc['storage'] * 1.3;
+            $storage = Storage::whereRaw('CAST(price AS DECIMAL(10,2)) <= ?', [$storageBudget])
+                    ->get()
+                    ->sortByDesc(function ($s) {
+                        $cap = (int) ($s->capacity ?? 500); 
+                        $isNvme = ($s->nvme === 'true' || $s->nvme === true) ? 1 : 0;
+                        return ($cap * 10) + ($isNvme * 5000); 
+                    })->first();
+
+            if (!$storage) $storage = Storage::orderByRaw('CAST(price AS DECIMAL(10,2)) ASC')->first();
+            if (!$storage) throw new \Exception('No compatible storage found.');
+            
+            $build['storage'] = $storage;
+            $totalCost += $storage->price;
+
+            // ==============================================================
+            // STEP 5: GPU
             // ==============================================================
             $gpuBudget = $maxBudget * $alloc['gpu'] * 1.3;
             $gpu = Gpu::whereRaw('CAST(price AS DECIMAL(10,2)) <= ?', [$gpuBudget])
@@ -333,7 +363,7 @@ class BuilderController extends Controller
             }
 
             // ==============================================================
-            // STEP 5: CASE (Must fit Motherboard & GPU physical dimensions)
+            // STEP 6: CASE
             // ==============================================================
             $caseBudget = $maxBudget * $alloc['case'] * 1.5;
             $case = PcCase::whereRaw('CAST(price AS DECIMAL(10,2)) <= ?', [$caseBudget])
@@ -356,7 +386,7 @@ class BuilderController extends Controller
             $totalCost += $case->price;
 
             // ==============================================================
-            // STEP 6: PSU (Must supply System Wattage)
+            // STEP 7: PSU
             // ==============================================================
             $psuBudget = $maxBudget * $alloc['psu'] * 1.5;
             $reqWattage = $estWattage * 1.25; // 25% safety overhead
@@ -376,7 +406,7 @@ class BuilderController extends Controller
             $totalCost += $psu->price;
 
             // ==============================================================
-            // STEP 7: COOLER (Must handle CPU Thermals)
+            // STEP 8: COOLER
             // ==============================================================
             $coolerBudget = $maxBudget * $alloc['cooler'] * 1.5;
             $reqThermal = (int)($cpu->tdp ?? 65) * 1.1; // 10% thermal headroom
@@ -425,6 +455,7 @@ class BuilderController extends Controller
             'mobo_id'       => isset($build['mobo']) ? $build['mobo']->id : null,
             'ram_id'        => isset($build['ram']) ? $build['ram']->id : null,
             'gpu_id'        => isset($build['gpu']) ? $build['gpu']->id : null,
+            'storage_id'    => isset($build['storage']) ? $build['storage']->id : null, // Added Storage
             'psu_id'        => isset($build['psu']) ? $build['psu']->id : null,
             'case_id'       => isset($build['case']) ? $build['case']->id : null,
             'total_cost'    => $totalCost,
@@ -445,6 +476,7 @@ class BuilderController extends Controller
         if ($buildRecord->mobo_id) $build['mobo'] = Motherboard::find($buildRecord->mobo_id);
         if ($buildRecord->ram_id) $build['ram'] = Ram::find($buildRecord->ram_id);
         if ($buildRecord->gpu_id) $build['gpu'] = Gpu::find($buildRecord->gpu_id);
+        if ($buildRecord->storage_id) $build['storage'] = Storage::find($buildRecord->storage_id); // Added Storage
         if ($buildRecord->psu_id) $build['psu'] = Psu::find($buildRecord->psu_id);
         if ($buildRecord->case_id) $build['case'] = PcCase::find($buildRecord->case_id);
         
@@ -463,20 +495,21 @@ class BuilderController extends Controller
         $scores1 = null;
         $scores2 = null;
         
-        $relations = ['cpu', 'cooler', 'motherboard', 'ram', 'gpu', 'psu', 'pcCase'];
+        $relations = ['cpu', 'cooler', 'motherboard', 'ram', 'gpu', 'psu', 'pcCase', 'storage']; // Added Storage relation
 
         // Safely check and load Build 1
         if ($request->filled('build1')) {
             $build1 = Build::with($relations)->where('user_id', auth()->id())->find($request->build1);
             if ($build1) {
                 $parts1 = [
-                    'cpu' => $build1->cpu,
-                    'gpu' => $build1->gpu,
-                    'ram' => $build1->ram,
-                    'mobo' => $build1->motherboard,
+                    'cpu'    => $build1->cpu,
+                    'gpu'    => $build1->gpu,
+                    'ram'    => $build1->ram,
+                    'mobo'   => $build1->motherboard,
                     'cooler' => $build1->cooler,
-                    'psu' => $build1->psu,
-                    'case' => $build1->pcCase
+                    'psu'    => $build1->psu,
+                    'case'   => $build1->pcCase,
+                    'storage'=> $build1->storage // Added Storage
                 ];
                 $scores1 = $this->validationEngine->calculateScores($parts1);
             }
@@ -487,13 +520,14 @@ class BuilderController extends Controller
             $build2 = Build::with($relations)->where('user_id', auth()->id())->find($request->build2);
             if ($build2) {
                 $parts2 = [
-                    'cpu' => $build2->cpu,
-                    'gpu' => $build2->gpu,
-                    'ram' => $build2->ram,
-                    'mobo' => $build2->motherboard,
+                    'cpu'    => $build2->cpu,
+                    'gpu'    => $build2->gpu,
+                    'ram'    => $build2->ram,
+                    'mobo'   => $build2->motherboard,
                     'cooler' => $build2->cooler,
-                    'psu' => $build2->psu,
-                    'case' => $build2->pcCase
+                    'psu'    => $build2->psu,
+                    'case'   => $build2->pcCase,
+                    'storage'=> $build2->storage // Added Storage
                 ];
                 $scores2 = $this->validationEngine->calculateScores($parts2);
             }
