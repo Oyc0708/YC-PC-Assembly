@@ -15,6 +15,8 @@ class ScrapeComponentPrice implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public $timeout = 180;
+
     protected array $vendors = [
         'Ideal Tech PC' => [
             'search_url' => 'https://idealtech.com.my/?post_type=product&s=',
@@ -122,17 +124,13 @@ class ScrapeComponentPrice implements ShouldQueue
         ];
         
         foreach ($expectedWords as $word) {
-            // Skip single characters (like 'a')
-            if (strlen($word) < 2) continue;
+            // Skip single letters (like 'a'), but KEEP single numbers (like '9' in Ultra 9)
+            if (strlen($word) < 2 && !is_numeric($word)) continue;
             
             // Skip common spec words that stores might not include
             if (in_array($word, $ignoreList)) continue;
             
-            // Skip standalone small numbers (like 14 cores, 3.5 GHz) to prevent false failures, 
-            // but KEEP large identifying numbers (like 4080, 13600, 2021)
-            if (is_numeric($word) && (int)$word < 1000) continue;
-            
-            // STRICT CHECK: If this significant word is completely missing from the store title, reject it
+            // STRICT CHECK: If this significant word or number is completely missing from the store title, reject it
             if (strpos($scrapedClean, $word) === false) {
                 return false;
             }
@@ -168,7 +166,7 @@ class ScrapeComponentPrice implements ShouldQueue
                 $scrapedTitle = $titleNodes->length > 0 ? trim($titleNodes->item(0)->textContent) : '';
                 if (empty($scrapedTitle)) continue;
 
-                // Pass through our new strict match function
+                // Pass through our strict match function
                 if (!$this->isStrictMatch($expectedName, $scrapedTitle)) {
                     continue; 
                 }
