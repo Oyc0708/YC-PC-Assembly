@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Gpu extends Model
 {
@@ -13,14 +14,24 @@ class Gpu extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'id',
         'name',
         'manufacturer',
-        'vram_gb',
+        'memory',
+        'memory_type',
         'tdp',
         'length_mm',
         'score',
     ];
+
+    // Automatically generate a UUID when creating a new GPU record
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            if (empty($model->id)) {
+                $model->id = (string) Str::uuid();
+            }
+        });
+    }
 
     public function prices()
     {

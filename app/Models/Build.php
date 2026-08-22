@@ -18,6 +18,7 @@ class Build extends Model
         'mobo_id',
         'ram_id',
         'gpu_id',
+        'storage_id',
         'psu_id',
         'case_id',
         'total_cost',
@@ -54,6 +55,11 @@ class Build extends Model
     public function gpu()
     {
         return $this->belongsTo(Gpu::class, 'gpu_id', 'id');
+    }
+
+    public function storage()
+    {
+        return $this->belongsTo(Storage::class, 'storage_id', 'id');
     }
 
     public function psu()

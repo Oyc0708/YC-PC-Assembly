@@ -22,6 +22,9 @@ class FetchHardwarePrices extends Command
 
         $force = $this->option('force');
         $totalQueued = 0;
+        
+        // Initialize the global delay tracker outside the loops
+        $delaySeconds = 0; 
 
         foreach ($componentClasses as $class) {
             $className = class_basename($class);
@@ -40,15 +43,20 @@ class FetchHardwarePrices extends Command
                 continue;
             }
 
-            // OPTION 3: Dispatch each item as a background job
+            // OPTION 3: Dispatch each item as a background job with throttling
             foreach ($components as $component) {
-                ScrapeComponentPrice::dispatch($component, $class);
+                ScrapeComponentPrice::dispatch($component, $class)
+                    ->delay(now()->addSeconds($delaySeconds));
+                
+                // Add a random delay between 2 and 5 seconds for the next job
+                $delaySeconds += random_int(2, 5);
                 $totalQueued++;
             }
 
             $this->info(" Queued {$components->count()} {$className}(s) for background processing.");
         }
 
-        $this->info("\n Done! Queued {$totalQueued} items for processing.");
+        $estimatedMinutes = round($delaySeconds / 60, 2);
+        $this->info("\n Done! Queued {$totalQueued} items. Estimated completion in {$estimatedMinutes} minutes.");
     }
 }

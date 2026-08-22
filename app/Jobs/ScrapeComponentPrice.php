@@ -105,37 +105,53 @@ class ScrapeComponentPrice implements ShouldQueue
     }
 
     /**
-     * Highly strict word-by-word comparison. 
-     * Rejects the product entirely if significant words from the expected name are missing.
+     * Exact word-boundary and modifier-aware comparison.
+     * Prevents partial numeric matches and tier cross-pollination.
      */
     private function isStrictMatch(string $expected, string $scraped): bool
     {
-        // 1. Remove all punctuation and convert to lowercase
-        $expectedClean = strtolower(preg_replace('/[^a-z0-9]+/i', ' ', $expected));
-        $scrapedClean = strtolower(preg_replace('/[^a-z0-9]+/i', ' ', $scraped));
+        $expectedClean = strtolower(trim($expected));
+        $scrapedClean  = strtolower(trim($scraped));
 
-        // 2. Break the expected name into unique words
-        $expectedWords = array_unique(array_filter(explode(' ', $expectedClean)));
-        
-        // 3. Define words that stores often format weirdly or omit entirely
-        $ignoreList = [
-            'ghz', 'mhz', 'gb', 'tb', 'w', 'hz', 'x', 'core', 'processor', 
-            'edition', 'box', 'lhr', 'plus', 'gold', 'bronze', 'wifi'
+        // 1. Rejection List: Modifiers defining distinct product tiers/variants
+        $tierModifiers = [
+            'ti', 'super', 'xt', 'xtx', 'gre', 'ultra',
+            'f', 'k', 'kf', 'ks', 'x3d'
         ];
-        
-        foreach ($expectedWords as $word) {
-            // Skip single letters (like 'a'), but KEEP single numbers (like '9' in Ultra 9)
-            if (strlen($word) < 2 && !is_numeric($word)) continue;
-            
-            // Skip common spec words that stores might not include
-            if (in_array($word, $ignoreList)) continue;
-            
-            // STRICT CHECK: If this significant word or number is completely missing from the store title, reject it
-            if (strpos($scrapedClean, $word) === false) {
+
+        // 2. Reject scraped item if it contains a tier modifier NOT present in target
+        foreach ($tierModifiers as $modifier) {
+            $pattern = '/\b' . preg_quote($modifier, '/') . '\b/i';
+            $inScraped  = (bool) preg_match($pattern, $scrapedClean);
+            $inExpected = (bool) preg_match($pattern, $expectedClean);
+
+            if ($inScraped && !$inExpected) {
                 return false;
             }
         }
-        
+
+        // 3. Normalize non-alphanumeric characters to single spaces
+        $normalizedExpected = preg_replace('/[^a-z0-9]+/i', ' ', $expectedClean);
+        $normalizedScraped  = preg_replace('/[^a-z0-9]+/i', ' ', $scrapedClean);
+
+        $expectedWords = array_unique(array_filter(explode(' ', $normalizedExpected)));
+
+        $ignoreList = [
+            'ghz', 'mhz', 'gb', 'tb', 'w', 'hz', 'core', 'processor', 
+            'edition', 'box', 'lhr', 'plus', 'gold', 'bronze', 'wifi'
+        ];
+
+        // 4. Exact Word Boundary Check: Match tokens using \b boundaries
+        foreach ($expectedWords as $word) {
+            if (strlen($word) < 2 && !is_numeric($word)) continue;
+            if (in_array($word, $ignoreList)) continue;
+
+            $pattern = '/\b' . preg_quote($word, '/') . '\b/i';
+            if (!preg_match($pattern, $normalizedScraped)) {
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -166,7 +182,7 @@ class ScrapeComponentPrice implements ShouldQueue
                 $scrapedTitle = $titleNodes->length > 0 ? trim($titleNodes->item(0)->textContent) : '';
                 if (empty($scrapedTitle)) continue;
 
-                // Pass through our strict match function
+                // Pass through strict match function
                 if (!$this->isStrictMatch($expectedName, $scrapedTitle)) {
                     continue; 
                 }

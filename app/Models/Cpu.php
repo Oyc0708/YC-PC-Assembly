@@ -7,11 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class Cpu extends Model
 {
+    use HasFactory;
+
     protected $keyType = 'string';
     public $incrementing = false;
 
     protected $fillable = [
-        'id', 'name', 'manufacturer', 'cores', 'socket', 'tdp', 'base_clock',
+        'id', 'name', 'manufacturer', 'cores', 'socket', 'tdp', 'base_clock', 'has_igpu',
+    ];
+    
+    protected $casts = [
+    'has_igpu' => 'boolean',
     ];
 
     public function prices()

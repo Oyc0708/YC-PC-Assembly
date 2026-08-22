@@ -18,12 +18,9 @@ class ImportBuildCores extends Command
     protected $signature = 'import:buildcores';
     protected $description = 'Import modern components from BuildCores OpenDB into MySQL';
 
-    /**
-     * Categorized blocklist for obsolete hardware standards
-     */
     protected array $legacyFilters = [
         'CPU' => [
-            'Pentium', 'Celeron', 'Core 2', 'Athlon', 'Sempron', 'Phenom', 
+            'Pentium', 'Celeron', 'Core 2', 'Athlon', 'Sempron', 'Phenom',
             ' FX-', ' A4-', ' A6-', ' A8-', ' A10-',
             'i3-2', 'i3-3', 'i3-4', 'i3-5', 'i3-6', 'i3-7',
             'i5-2', 'i5-3', 'i5-4', 'i5-5', 'i5-6', 'i5-7',
@@ -36,7 +33,7 @@ class ImportBuildCores extends Command
             'Radeon HD', 'R5 2', 'R7 2', 'R7 3', 'R9 2', 'R9 3', 'FirePro', 'Voodoo', 'AGP'
         ],
         'RAM' => [
-            'DDR2', 'DDR3', 'DDR ', 'SDRAM'
+            'DDR2', 'DDR3', 'SDRAM'
         ],
         'Motherboard' => [
             'LGA 775', 'LGA 1156', 'LGA 1155', 'LGA 1150', 'LGA 1366', 'AM2', 'AM3', 'FM1', 'FM2',
@@ -51,7 +48,6 @@ class ImportBuildCores extends Command
         'CPUCooler' => [
             'Socket 478', 'Socket 754', 'Socket 939', 'LGA 775'
         ],
-        // --- ADDED STORAGE BLOCKLIST ---
         'Storage' => [
             'IDE', 'PATA', 'SATA 3Gb/s', 'SATA II', '5400RPM'
         ]
@@ -66,92 +62,155 @@ class ImportBuildCores extends Command
             return;
         }
 
-        // Map directories to their Models and extraction logic
         $categories = [
             'CPU' => function($data) {
-                Cpu::updateOrCreate(['id' => $data['opendb_id']], [
-                    'name' => $data['metadata']['name'] ?? 'Unknown',
-                    'manufacturer' => $data['metadata']['manufacturer'] ?? 'Unknown',
-                    'cores' => $data['cores']['total'] ?? 'Unknown',
-                    'threads' => $data['threads']['total'] ?? 'Unknown',
-                    'socket' => $data['socket'] ?? 'Unknown',
-                    'tdp' => $data['tdp'] ?? 'Unknown',
-                    'base_clock' => $data['clocks']['performance']['base'] ?? 'Unknown',
-                    'price' => 0,
-                ]);
+                $name = $this->sanitizeString($data['metadata']['name'] ?? null);
+                if ($name === 'Unknown') return;
+
+                $baseClock = $this->sanitizeFloat(
+                    $data['clocks']['performance']['base']
+                    ?? $data['clocks']['base']
+                    ?? $data['base_clock']
+                    ?? 0
+                );
+                
+                $boostClock = $this->sanitizeFloat(
+                    $data['clocks']['performance']['boost']
+                    ?? $data['clocks']['boost']
+                    ?? $data['boost_clock']
+                    ?? $baseClock
+                );
+
+                Cpu::updateOrCreate(
+                    ['id' => $data['opendb_id']], 
+                    [
+                        'name' => $name, 
+                        'manufacturer' => $this->sanitizeString($data['metadata']['manufacturer'] ?? 'Unknown'),
+                        'cores' => $this->sanitizeInt($data['cores']['total'] ?? $data['cores'] ?? 0),
+                        'threads' => $this->sanitizeInt($data['threads']['total'] ?? $data['threads'] ?? 0),
+                        'socket' => $this->sanitizeString($data['socket'] ?? 'Unknown'),
+                        'has_igpu' => !empty($data['integrated_graphics']), // [CRITICAL FIX] Map the iGPU data here
+                        'tdp' => $this->sanitizeInt($data['tdp'] ?? 0),
+                        'base_clock' => $baseClock,
+                        'boost_clock' => $boostClock > 0 ? $boostClock : $baseClock,
+                        'price' => $this->sanitizeFloat($data['price'] ?? 0),
+                    ]
+                );
             },
             'GPU' => function($data) {
-                Gpu::updateOrCreate(['id' => $data['opendb_id']], [
-                    'name' => $data['metadata']['name'] ?? 'Unknown',
-                    'manufacturer' => $data['metadata']['manufacturer'] ?? 'Unknown',
-                    'vram_gb' => $data['memory'] ?? 'Unknown',
-                    'tdp' => $data['tdp'] ?? 'Unknown',
-                    'memory_type' => $data['memory_type'] ?? 'Unknown',
-                    'length_mm' => $data['dimensions']['length_mm'] ?? 'Unknown',
-                    'score' => 0,
-                    'price' => 0,
-                ]);
+                $name = $this->sanitizeString($data['metadata']['name'] ?? null);
+                if ($name === 'Unknown') return;
+
+                Gpu::updateOrCreate(
+                    ['id' => $data['opendb_id']],
+                    [
+                        'name' => $name,
+                        'manufacturer' => $this->sanitizeString($data['metadata']['manufacturer'] ?? 'Unknown'),
+                        'memory' => $this->sanitizeInt($data['memory'] ?? $data['vram_gb'] ?? 0),
+                        'tdp' => $this->sanitizeInt($data['tdp'] ?? 0),
+                        'memory_type' => $this->sanitizeString($data['memory_type'] ?? 'Unknown'),
+                        'length_mm' => $this->sanitizeInt($data['dimensions']['length_mm'] ?? $data['length_mm'] ?? 0),
+                        'score' => $this->sanitizeInt($data['score'] ?? 0),
+                        'price' => $this->sanitizeFloat($data['price'] ?? 0),
+                    ]
+                );
             },
             'RAM' => function($data) {
-                Ram::updateOrCreate(['id' => $data['opendb_id']], [
-                    'name' => $data['metadata']['name'] ?? 'Unknown',
-                    'manufacturer' => $data['metadata']['manufacturer'] ?? 'Unknown',
-                    'type' => $data['ram_type'] ?? 'Unknown',
-                    'capacity_gb' => $data['capacity'] ?? 'Unknown',
-                    'speed' => $data['speed'] ?? 'Unknown',
-                    'score' => 0,
-                    'price' => 0,
-                ]);
+                $name = $this->sanitizeString($data['metadata']['name'] ?? null);
+                if ($name === 'Unknown') return;
+
+                Ram::updateOrCreate(
+                    ['id' => $data['opendb_id']],
+                    [
+                        'name' => $name,
+                        'manufacturer' => $this->sanitizeString($data['metadata']['manufacturer'] ?? 'Unknown'),
+                        'type' => $this->sanitizeString($data['ram_type'] ?? $data['type'] ?? 'Unknown'),
+                        'capacity' => $this->sanitizeInt($data['capacity'] ?? 0),
+                        'speed' => $this->sanitizeInt($data['speed'] ?? 0),
+                        'score' => $this->sanitizeInt($data['score'] ?? 0),
+                        'price' => $this->sanitizeFloat($data['price'] ?? 0),
+                    ]
+                );
             },
             'Motherboard' => function($data) {
-                Motherboard::updateOrCreate(['id' => $data['opendb_id']], [
-                    'name' => $data['metadata']['name'] ?? 'Unknown',
-                    'manufacturer' => $data['metadata']['manufacturer'] ?? 'Unknown',
-                    'socket' => $data['socket'] ?? 'Unknown',
-                    'ram_type' => $data['memory']['ram_type'] ?? 'Unknown',
-                    'form_factor' => $data['form_factor'] ?? 'Unknown',
-                    'price' => 0,
-                ]);
+                $name = $this->sanitizeString($data['metadata']['name'] ?? null);
+                if ($name === 'Unknown') return;
+
+                Motherboard::updateOrCreate(
+                    ['id' => $data['opendb_id']],
+                    [
+                        'name' => $name,
+                        'manufacturer' => $this->sanitizeString($data['metadata']['manufacturer'] ?? 'Unknown'),
+                        'socket' => $this->sanitizeString($data['socket'] ?? 'Unknown'),
+                        'ram_type' => $this->sanitizeString($data['memory']['ram_type'] ?? $data['ram_type'] ?? 'Unknown'),
+                        'form_factor' => $this->sanitizeString($data['form_factor'] ?? 'Unknown'),
+                        'price' => $this->sanitizeFloat($data['price'] ?? 0),
+                    ]
+                );
             },
             'PSU' => function($data) {
-                Psu::updateOrCreate(['id' => $data['opendb_id']], [
-                    'name' => $data['metadata']['name'] ?? 'Unknown',
-                    'manufacturer' => $data['metadata']['manufacturer'] ?? 'Unknown',
-                    'wattage' => $data['wattage'] ?? 'Unknown',
-                    'efficiency' => $data['efficiency_rating'] ?? 'Unknown',
-                    'modular' => $data['modular'] ?? 'false',
-                    'price' => 0,
-                ]);
+                $name = $this->sanitizeString($data['metadata']['name'] ?? null);
+                if ($name === 'Unknown') return;
+
+                Psu::updateOrCreate(
+                    ['id' => $data['opendb_id']],
+                    [
+                        'name' => $name,
+                        'manufacturer' => $this->sanitizeString($data['metadata']['manufacturer'] ?? 'Unknown'),
+                        'wattage' => $this->sanitizeInt($data['wattage'] ?? 0),
+                        'efficiency' => $this->sanitizeString($data['efficiency_rating'] ?? $data['efficiency'] ?? 'Unknown'),
+                        'modular' => $this->sanitizeBool($data['modular'] ?? false),
+                        'price' => $this->sanitizeFloat($data['price'] ?? 0),
+                    ]
+                );
             },
             'PCCase' => function($data) {
-                PcCase::updateOrCreate(['id' => $data['opendb_id']], [
-                    'name' => $data['metadata']['name'] ?? 'Unknown',
-                    'manufacturer' => $data['metadata']['manufacturer'] ?? 'Unknown',
-                    'max_gpu_length_mm' => $data['max_video_card_length'] ?? 'Unknown',
-                    'form_factor' => $data['form_factor'] ?? 'Unknown',
-                    'price' => 0,
-                ]);
+                $name = $this->sanitizeString($data['metadata']['name'] ?? null);
+                if ($name === 'Unknown') return;
+
+                PcCase::updateOrCreate(
+                    ['id' => $data['opendb_id']],
+                    [
+                        'name' => $name,
+                        'manufacturer' => $this->sanitizeString($data['metadata']['manufacturer'] ?? 'Unknown'),
+                        'max_gpu_length_mm' => $this->sanitizeInt($data['max_video_card_length'] ?? $data['max_gpu_length_mm'] ?? 0),
+                        'form_factor' => $this->sanitizeString($data['form_factor'] ?? 'Unknown'),
+                        'price' => $this->sanitizeFloat($data['price'] ?? 0),
+                    ]
+                );
             },
             'CPUCooler' => function($data) {
-                Cooler::updateOrCreate(['id' => $data['opendb_id']], [
-                    'name' => $data['metadata']['name'] ?? 'Unknown',
-                    'manufacturer' => $data['metadata']['manufacturer'] ?? 'Unknown',
-                    'max_tdp' => $data['tdp'] ?? 'Unknown',
-                    'is_water_cooled' => isset($data['water_cooled']) ? ($data['water_cooled'] === true ? 'true' : 'false') : 'false',
-                    'price' => 0,
-                ]);
+                $name = $this->sanitizeString($data['metadata']['name'] ?? null);
+                if ($name === 'Unknown') return;
+
+                Cooler::updateOrCreate(
+                    ['id' => $data['opendb_id']],
+                    [
+                        'name' => $name,
+                        'manufacturer' => $this->sanitizeString($data['metadata']['manufacturer'] ?? 'Unknown'),
+                        'max_tdp' => $this->sanitizeInt($data['tdp'] ?? $data['max_tdp'] ?? 0),
+                        'is_water_cooled' => $this->sanitizeBool($data['water_cooled'] ?? $data['is_water_cooled'] ?? false),
+                        'price' => $this->sanitizeFloat($data['price'] ?? 0),
+                    ]
+                );
             },
             'Storage' => function($data) {
-                Storage::updateOrCreate(['id' => $data['opendb_id']], [
-                    'name' => $data['metadata']['name'] ?? 'Unknown',
-                    'manufacturer' => $data['metadata']['manufacturer'] ?? 'Unknown',
-                    'type' => $data['type'] ?? 'Unknown', // SSD or HDD
-                    'capacity' => $data['capacity'] ?? 'Unknown', // Usually in GB based on BuildCores standard
-                    'form_factor' => $data['form_factor'] ?? 'Unknown',
-                    'interface' => $data['interface'] ?? 'Unknown',
-                    'nvme' => isset($data['nvme']) ? ($data['nvme'] === true ? 'true' : 'false') : 'false',
-                    'price' => 0,
-                ]);
+                $name = $this->sanitizeString($data['metadata']['name'] ?? null);
+                if ($name === 'Unknown') return;
+
+                Storage::updateOrCreate(
+                    ['id' => $data['opendb_id']],
+                    [
+                        'name' => $name,
+                        'manufacturer' => $this->sanitizeString($data['metadata']['manufacturer'] ?? 'Unknown'),
+                        'type' => $this->sanitizeString($data['type'] ?? 'Unknown'),
+                        'capacity' => $this->sanitizeInt($data['capacity'] ?? 0),
+                        'form_factor' => $this->sanitizeString($data['form_factor'] ?? 'Unknown'),
+                        'interface' => $this->sanitizeString($data['interface'] ?? 'Unknown'),
+                        'nvme' => $this->sanitizeBool($data['nvme'] ?? false),
+                        'price' => $this->sanitizeFloat($data['price'] ?? 0),
+                    ]
+                );
             },
         ];
 
@@ -174,11 +233,10 @@ class ImportBuildCores extends Command
                 $data = json_decode(file_get_contents($file->getPathname()), true);
                 
                 if ($data && isset($data['opendb_id'])) {
-                    // Check if component matches legacy blocklist
                     if ($this->isLegacyComponent($data, $folder)) {
                         $skippedCount++;
                     } else {
-                        $parser($data); // Import valid component
+                        $parser($data);
                     }
                 }
                 $bar->advance();
@@ -192,30 +250,66 @@ class ImportBuildCores extends Command
         $this->info('Master Import Completed Successfully!');
     }
 
-    /**
-     * Inspects JSON data against the legacy blocklist for that category.
-     */
     private function isLegacyComponent(array $data, string $folder): bool
     {
         $name = $data['metadata']['name'] ?? '';
         $socket = $data['socket'] ?? '';
-        $ramType = $data['type'] ?? $data['memory']['type'] ?? '';
-        
-        // Include 'interface' and 'form_factor' to easily catch legacy storage drives
+        $ramType = $data['type'] ?? $data['memory']['type'] ?? $data['ram_type'] ?? '';
         $interface = $data['interface'] ?? '';
         $formFactor = $data['form_factor'] ?? '';
 
-        // Combine metadata text to scan in one pass
-        $searchableText = strtolower("{$name} {$socket} {$ramType} {$interface} {$formFactor}");
-
+        $searchableText = "{$name} {$socket} {$ramType} {$interface} {$formFactor}";
         $filters = $this->legacyFilters[$folder] ?? [];
 
         foreach ($filters as $keyword) {
-            if (str_contains($searchableText, strtolower($keyword))) {
-                return true; // Marked as legacy
+            $pattern = '/\b' . preg_quote(trim($keyword), '/') . '(?!\+)/i';
+            if (preg_match($pattern, $searchableText)) {
+                return true;
             }
         }
 
         return false;
+    }
+
+    private function sanitizeInt(mixed $value, int $default = 0): int
+    {
+        if (is_numeric($value)) {
+            return (int) $value;
+        }
+        if (is_string($value) && preg_match('/(\d+)/', $value, $matches)) {
+            return (int) $matches[1];
+        }
+        return $default;
+    }
+
+    private function sanitizeFloat(mixed $value, float $default = 0.0): float
+    {
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+        if (is_string($value) && preg_match('/(\d+(?:\.\d+)?)/', $value, $matches)) {
+            return (float) $matches[1];
+        }
+        return $default;
+    }
+
+    private function sanitizeBool(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+        if (is_string($value)) {
+            return in_array(strtolower(trim($value)), ['true', '1', 'yes']);
+        }
+        return (bool) $value;
+    }
+
+    private function sanitizeString(mixed $value, int $maxLength = 100): string
+    {
+        if (!is_string($value) || empty(trim($value))) {
+            return 'Unknown';
+        }
+
+        return mb_substr(trim($value), 0, $maxLength, 'UTF-8');
     }
 }
