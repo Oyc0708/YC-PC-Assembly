@@ -39,7 +39,7 @@ class ValidationEngine
         if (strpos($ff, 'atx') !== false && strpos($ff, 'micro') === false && strpos($ff, 'mini') === false) return 3;
         if (strpos($ff, 'micro') !== false || strpos($ff, 'matx') !== false) return 2;
         if (strpos($ff, 'mini') !== false || strpos($ff, 'itx') !== false) return 1;
-        return 3; 
+        return 3;
     }
 
     /**

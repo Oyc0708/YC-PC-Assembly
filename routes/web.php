@@ -57,13 +57,10 @@ Route::prefix('builder')->group(function () {
 // and an explicit check for admin privileges.
 Route::post('/admin/force-price-update', function (Request $request) {
     
-    // SECURITY: Ensure user is logged in AND matches your specific email.
-    // Replace 'your-email@example.com' with your actual account email.
-    if (!auth()->check() || auth()->user()->email !== 'your-email@example.com') {
+    if (!auth()->check() || auth()->user()->email !== 'test@test') {
         abort(403, 'Unauthorized action. Administrator privileges required.');
     }
 
-    // Programmatically run the fetcher command
     Artisan::call('prices:fetch');
 
     return back()->with('success', 'Market prices from all 5 Malaysian vendors have been synced successfully!');

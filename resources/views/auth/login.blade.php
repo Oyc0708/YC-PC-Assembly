@@ -1,11 +1,11 @@
 <x-layout>
-    <div style="max-width: 450px; margin: 40px auto;">
-        <div class="card">
-            <h2 style="text-align: center; margin-bottom: 30px;">Welcome Back</h2>
+    <div class="auth-container">
+        <div class="auth-card card">
+            <h2 class="auth-title auth-header">Welcome Back</h2>
 
             <!-- Session Status -->
             @if (session('status'))
-                <div style="color: var(--neon-green); margin-bottom: 20px; font-weight: bold;">
+                <div class="mb-4" style="color: var(--success); font-weight: 500;">
                     {{ session('status') }}
                 </div>
             @endif
@@ -15,57 +15,55 @@
 
                 <!-- Email Address -->
                 <div class="form-group">
-                    <label for="email" class="form-label">Email Address</label>
-                    <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus class="form-input">
+                    <label for="email">Email Address</label>
+                    <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus class="input @error('email') input-error @enderror">
                     @error('email')
-                        <span class="text-danger">{{ $message }}</span>
+                        <span class="error-msg">{{ $message }}</span>
                     @enderror
                 </div>
 
                 <!-- Password -->
                 <div class="form-group">
-                    <label for="password" class="form-label">Password</label>
-                    <input id="password" type="password" name="password" required class="form-input">
+                    <label for="password">Password</label>
+                    <input id="password" type="password" name="password" required class="input @error('password') input-error @enderror">
                     @error('password')
-                        <span class="text-danger">{{ $message }}</span>
+                        <span class="error-msg">{{ $message }}</span>
                     @enderror
                 </div>
 
                 <!-- Remember Me & Forgot Password -->
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <label style="display: flex; align-items: center; color: var(--text-muted); font-size: 14px;">
+                <div class="flex justify-between items-center mb-6">
+                    <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 0;">
                         <input type="checkbox" name="remember" style="margin-right: 8px;">
                         Remember me
                     </label>
                     @if (Route::has('password.request'))
-                        <a href="{{ route('password.request') }}" style="color: var(--accent-blue); font-size: 14px; text-decoration: none;">Forgot password?</a>
+                        <a href="{{ route('password.request') }}" style="font-size: 0.875rem;">Forgot password?</a>
                     @endif
                 </div>
 
-                <button type="submit" class="btn-primary" style="width: 100%; padding: 12px;">Log in</button>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Log in</button>
             </form>
 
             <!-- Divider -->
-            <div style="display: flex; align-items: center; margin: 25px 0;">
-                <hr style="flex-grow: 1; border: none; border-top: 1px solid var(--text-muted); opacity: 0.3; margin: 0;">
-                <span style="padding: 0 15px; color: var(--text-muted); font-size: 14px; font-weight: bold; text-transform: uppercase;">Or</span>
-                <hr style="flex-grow: 1; border: none; border-top: 1px solid var(--text-muted); opacity: 0.3; margin: 0;">
+            <div class="flex items-center my-6" style="margin: 1.5rem 0;">
+                <hr style="flex: 1; border: none; border-top: 1px solid var(--border-color);">
+                <span style="padding: 0 1rem; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase;">Or</span>
+                <hr style="flex: 1; border: none; border-top: 1px solid var(--border-color);">
             </div>
 
             <!-- Continue as Guest Button -->
-            <div style="text-align: center;">
-                <a href="{{ route('builder.index') }}"
-                style="display: inline-block; width: 100%; padding: 12px; background-color: transparent; border: 1px solid var(--text-muted); color: var(--text-muted); text-decoration: none; border-radius: 4px; font-weight: bold; box-sizing: border-box; transition: 0.3s; text-align: center;">
+            <div class="text-center">
+                <a href="{{ route('builder.index') }}" class="btn btn-secondary" style="width: 100%;">
                     Continue as Guest
                 </a>
             </div>
             
-            <!-- Optional: Link to Register -->
-            <div style="text-align: center; margin-top: 20px;">
-                <span style="color: var(--text-muted); font-size: 14px;">Don't have an account? </span>
-                <a href="{{ route('register') }}" style="color: var(--accent-blue); font-size: 14px; text-decoration: none; font-weight: bold;">Sign up</a>
+            <!-- Link to Register -->
+            <div class="text-center mt-6">
+                <span style="color: var(--text-muted); font-size: 0.875rem;">Don't have an account? </span>
+                <a href="{{ route('register') }}" style="font-weight: 500; font-size: 0.875rem;">Sign up</a>
             </div>
-
         </div>
     </div>
 </x-layout>

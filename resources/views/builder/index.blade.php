@@ -3,10 +3,10 @@
     <div class="tab-container" role="tablist">
         <button onclick="switchTab('manual')" id="tab-manual" class="tab-btn tab-active" role="tab" aria-selected="true" aria-controls="view-manual">Manual Builder</button>
         <button onclick="switchTab('catalog')" id="tab-catalog" class="tab-btn" role="tab" aria-selected="false" aria-controls="view-catalog">Hardware Catalog</button>
-        <button onclick="switchTab('autobuild')" id="tab-autobuild" class="tab-btn" role="tab" aria-selected="false" aria-controls="view-autobuild" style="color: var(--neon-green);">Auto-Build ⚡</button>
+        <button onclick="switchTab('autobuild')" id="tab-autobuild" class="tab-btn" role="tab" aria-selected="false" aria-controls="view-autobuild" style="color: var(--success);">Auto-Build ⚡</button>
         <button onclick="switchTab('saved')" id="tab-saved" class="tab-btn" role="tab" aria-selected="false" aria-controls="view-saved">Saved Builds</button>
 
-        <a href="{{ auth()->check() ? route('builder.compare') : route('login') }}" class="tab-btn" style="text-decoration: none; color: var(--neon-orange);">Compare Builds</a>
+        <a href="{{ auth()->check() ? route('builder.compare') : route('login') }}" class="tab-btn" style="text-decoration: none; color: var(--gray-500);">Compare Builds</a>
     </div>
 
     <!-- VIEW: MANUAL BUILDER -->
@@ -23,7 +23,7 @@
                         @if(count($currentBuild) > 0)
                             <form action="{{ route('builder.clear') }}" method="POST" onsubmit="return confirm('Are you sure you want to clear your entire build?');" style="margin: 0;">
                                 @csrf
-                                <button type="submit" class="btn-secondary" style="color: var(--neon-red); border-color: var(--neon-red); padding: 6px 12px; font-size: 12px; display: flex; align-items: center; gap: 5px;">
+                                <button type="submit" class="btn btn-secondary" style="color: var(--error); border-color: var(--error); padding: 6px 12px; font-size: 12px; display: flex; align-items: center; gap: 5px;">
                                     🗑️ Remove All
                                 </button>
                             </form>
@@ -31,13 +31,13 @@
                     </div>
                     
                     @if(session('success'))
-                        <div style="padding: 10px; background: rgba(0, 255, 102, 0.1); color: var(--neon-green); border-left: 4px solid var(--neon-green); margin-bottom: 20px;">
+                        <div style="padding: 10px; background: rgba(0, 255, 102, 0.1); color: var(--success); border-left: 4px solid var(--success); margin-bottom: 20px;">
                             {{ session('success') }}
                         </div>
                     @endif
 
                     @if(session('error'))
-                        <div style="padding: 10px; background: rgba(239, 68, 68, 0.1); color: var(--neon-red); border-left: 4px solid var(--neon-red); margin-bottom: 20px;">
+                        <div style="padding: 10px; background: rgba(239, 68, 68, 0.1); color: var(--error); border-left: 4px solid var(--error); margin-bottom: 20px;">
                             {{ session('error') }}
                         </div>
                     @endif
@@ -57,9 +57,9 @@
                                 <span style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">{{ $label }}</span><br>
                                 @if(isset($currentBuild[$key]))
                                     <strong>{{ $currentBuild[$key]->name }}</strong>
-                                    <div style="color: var(--neon-green); font-size: 14px; margin-top: 4px;">RM {{ number_format($currentBuild[$key]->price, 2) }}</div>
+                                    <div style="color: var(--success); font-size: 14px; margin-top: 4px;">RM {{ number_format($currentBuild[$key]->price, 2) }}</div>
                                 @else
-                                    <span style="color: #666; font-style: italic;">No component selected</span>
+                                    <span style="color: var(--text-muted); font-style: italic;">No component selected</span>
                                 @endif
                             </div>
                             <div>
@@ -67,10 +67,10 @@
                                     <form action="{{ route('builder.remove') }}" method="POST">
                                         @csrf
                                         <input type="hidden" name="category" value="{{ $key }}">
-                                        <button type="submit" class="btn-secondary" style="color: var(--neon-red); border-color: var(--neon-red);">Remove</button>
+                                        <button type="submit" class="btn btn-secondary" style="color: var(--error); border-color: var(--error);">Remove</button>
                                     </form>
                                 @else
-                                    <a href="{{ route('builder.select', $key) }}" class="btn-primary" style="text-decoration: none;">Choose</a>
+                                    <a href="{{ route('builder.select', $key) }}" class="btn btn-primary" style="text-decoration: none;">Choose</a>
                                 @endif
                             </div>
                         </div>
@@ -84,12 +84,12 @@
                     <h2 style="margin-top: 0;">Build Summary</h2>
                     <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; margin-bottom: 20px;">
                         <span>Est. Total</span>
-                        <span style="color: var(--neon-green);">RM {{ number_format($totalCost, 2) }}</span>
+                        <span style="color: var(--success);">RM {{ number_format($totalCost, 2) }}</span>
                     </div>
 
                     <!-- SCORE GAUGE SYSTEM -->
                     @if(count($currentBuild) > 0 && isset($scores))
-                        <div class="score-card" style="display: flex; justify-content: space-between; align-items: center; background: #111; padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 20px;">
+                        <div class="score-card" style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-surface); padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 20px;">
                             
                             <div class="score-info">
                                 <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px; display: flex; align-items: center;">
@@ -120,7 +120,7 @@
                                                 </div>
 
                                                 <div style="border-top: 1px solid var(--border-color); padding-top: 6px;">
-                                                    <strong style="color: {{ ($scores['breakdown']['multiplier'] ?? 1) < 1 ? 'var(--neon-orange)' : 'var(--neon-green)' }}; display: block; margin-bottom: 2px;">
+                                                    <strong style="color: {{ ($scores['breakdown']['multiplier'] ?? 1) < 1 ? 'var(--gray-500)' : 'var(--success)' }}; display: block; margin-bottom: 2px;">
                                                         System Balance Impact
                                                     </strong>
                                                     <span style="color: var(--text-muted);">{{ $scores['breakdown']['balance'] ?? 'Balanced' }}</span>
@@ -129,7 +129,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div style="color: var(--neon-blue); font-size: 12px; font-weight: bold; margin-bottom: 5px; padding: 2px 6px; border: 1px solid var(--neon-blue); display: inline-block; border-radius: 4px;">{{ $scores['tier'] ?? 'N/A' }}</div>
+                                <div style="color: var(--accent); font-size: 12px; font-weight: bold; margin-bottom: 5px; padding: 2px 6px; border: 1px solid var(--accent); display: inline-block; border-radius: 4px;">{{ $scores['tier'] ?? 'N/A' }}</div>
                                 <div style="font-size: 24px; font-weight: bold; color: var(--text-main); margin-bottom: 5px;">{{ number_format($scores['overall'] ?? 0) }} pts</div>
                                 <div style="font-size: 12px; color: var(--text-muted);">
                                     Gaming: <strong style="color: #fff;">{{ number_format($scores['gaming'] ?? 0) }}</strong><br>
@@ -145,7 +145,7 @@
                                 
                                 <svg width="80" height="80" style="transform: rotate(-90deg);">
                                     <circle cx="40" cy="40" r="34" stroke="#222" stroke-width="8" fill="transparent" />
-                                    <circle cx="40" cy="40" r="34" stroke="var(--neon-blue)" stroke-width="8" fill="transparent"
+                                    <circle cx="40" cy="40" r="34" stroke="var(--accent)" stroke-width="8" fill="transparent"
                                             stroke-dasharray="{{ $circumference }}"
                                             stroke-dashoffset="{{ $circumference }}"
                                             stroke-linecap="round"
@@ -163,12 +163,12 @@
                     
                     @if(count($currentBuild) > 0 && isset($compatibility))
                         @if($compatibility['is_valid'] && count($compatibility['warnings']) === 0)
-                            <div style="color: var(--neon-green); padding: 10px; border: 1px solid var(--neon-green); border-radius: 4px;">
+                            <div style="color: var(--success); padding: 10px; border: 1px solid var(--success); border-radius: 4px;">
                                 ✓ SYSTEM OPTIMAL (Est. {{ $compatibility['estimated_wattage'] }}W)
                             </div>
                         @else
                             @foreach($compatibility['issues'] as $issue)
-                                <div style="color: var(--neon-red); margin-bottom: 10px;">❌ {{ $issue }}</div>
+                                <div style="color: var(--error); margin-bottom: 10px;">❌ {{ $issue }}</div>
                             @endforeach
                             @foreach($compatibility['warnings'] as $warning)
                                 <div style="color: orange; margin-bottom: 10px;">⚠️ {{ $warning }}</div>
@@ -186,7 +186,7 @@
                             
                             <!-- Bottleneck Analyst -->
                             @if(isset($compatibility['bottleneck']))
-                                <div style="background: #18181b; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); border-left: 4px solid {{ $compatibility['bottleneck']['color'] }};">
+                                <div style="background: var(--bg-main); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); border-left: 4px solid {{ $compatibility['bottleneck']['color'] }};">
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                         <span style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: bold;">Compute Balance</span>
                                         <span style="font-size: 12px; font-weight: bold; color: {{ $compatibility['bottleneck']['color'] }};">{{ $compatibility['bottleneck']['status'] }}</span>
@@ -199,7 +199,7 @@
 
                             <!-- Power Efficiency Curve -->
                             @if(isset($compatibility['power_analytics']))
-                                <div style="background: #18181b; padding: 12px; border-radius: 6px; border: 1px solid var(--border-color);">
+                                <div style="background: var(--bg-main); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color);">
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                         <span style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: bold;">PSU Load Curve</span>
                                         <span style="font-size: 12px; font-weight: bold; color: {{ $compatibility['power_analytics']['color'] }};">{{ $compatibility['power_analytics']['load_percentage'] }}% Load</span>
@@ -222,10 +222,10 @@
                     @auth
                         <form action="{{ route('builder.save') }}" method="POST" style="margin-top: 20px;">
                             @csrf
-                            <button type="submit" class="btn-primary" style="width: 100%;">💾 Save Configuration</button>
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">💾 Save Configuration</button>
                         </form>
                     @else
-                        <button onclick="alert('Please log in or create an account to save your configurations.')" class="btn-primary" style="width: 100%; margin-top: 20px; opacity: 0.7;">
+                        <button onclick="alert('Please log in or create an account to save your configurations.')" class="btn btn-primary" style="width: 100%; margin-top: 20px; opacity: 0.7;">
                             💾 Login to Save
                         </button>
                     @endauth
@@ -242,7 +242,7 @@
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <!-- Updated to include 'storage' -->
                 @foreach(['cpu', 'cooler', 'mobo', 'ram', 'storage', 'gpu', 'psu', 'case'] as $cat)
-                    <a href="{{ route('builder.select', $cat) }}" class="btn-secondary" style="text-decoration: none; text-transform: uppercase;">Browse {{ $cat }}s</a>
+                    <a href="{{ route('builder.select', $cat) }}" class="btn btn-secondary" style="text-decoration: none; text-transform: uppercase;">Browse {{ $cat }}s</a>
                 @endforeach
             </div>
         </div>
@@ -252,7 +252,7 @@
     <div id="view-autobuild" class="tab-view" role="tabpanel" aria-labelledby="tab-autobuild" style="display: none;">
         <div class="card" style="padding: 40px; max-width: 800px; margin: 0 auto;">
             <div style="text-align: center; margin-bottom: 40px;">
-                <h1 style="font-size: 40px; margin: 0; color: var(--neon-blue);">⚡</h1>
+                <h1 style="font-size: 40px; margin: 0; color: var(--accent);">⚡</h1>
                 <h2>Auto-Build Generator</h2>
                 <p style="color: var(--text-muted);">
                     Set your target budget range and workload. Our combinatorial solver will query the database to find the highest-performing, bottleneck-free configuration within your strict constraints.
@@ -286,18 +286,18 @@
                     <div style="display: flex; gap: 20px; justify-content: center; align-items: center; max-width: 500px; margin: 0 auto;">
                         <div style="width: 100%;">
                             <label class="form-label" style="font-size: 12px;">Minimum</label>
-                            <input type="number" name="min_budget" min="1500" max="30000" step="100" value="4000" class="form-input" style="font-size: 20px; text-align: center; font-weight: bold; color: var(--neon-green);">
+                            <input type="number" name="min_budget" min="1500" max="30000" step="100" value="4000" class="form-input" style="font-size: 20px; text-align: center; font-weight: bold; color: var(--success);">
                         </div>
                         <div style="font-size: 24px; color: var(--text-muted); padding-top: 20px;">-</div>
                         <div style="width: 100%;">
                             <label class="form-label" style="font-size: 12px;">Maximum</label>
-                            <input type="number" name="max_budget" min="2000" max="35000" step="100" value="6500" class="form-input" style="font-size: 20px; text-align: center; font-weight: bold; color: var(--neon-orange);">
+                            <input type="number" name="max_budget" min="2000" max="35000" step="100" value="6500" class="form-input" style="font-size: 20px; text-align: center; font-weight: bold; color: var(--gray-500);">
                         </div>
                     </div>
                 </div>
 
                 <div style="text-align: center; margin-top: 40px;">
-                    <button type="submit" class="btn-primary" style="font-size: 16px; padding: 12px 30px;">Generate Optimized Build</button>
+                    <button type="submit" class="btn btn-primary" style="font-size: 16px; padding: 12px 30px;">Generate Optimized Build</button>
                 </div>
             </form>
         </div>
@@ -313,7 +313,7 @@
                 @if(isset($savedBuilds) && $savedBuilds->count() > 0)
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px;">
                         @foreach($savedBuilds as $saved)
-                            <div class="card" style="margin-bottom: 0; background: var(--bg-dark); border: 1px solid var(--border-color); display: flex; flex-direction: column;">
+                            <div class="card" style="margin-bottom: 0; background: var(--bg-main); border: 1px solid var(--border-color); display: flex; flex-direction: column;">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
                                     <div>
                                         <h3 style="margin: 0; color: var(--accent-blue); font-size: 18px;">{{ $saved->name }}</h3>
@@ -327,7 +327,7 @@
                                 <div style="display: flex; justify-content: space-between; margin-bottom: 20px; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); padding: 15px 0; flex-grow: 1;">
                                     <div>
                                         <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">Est. Cost</div>
-                                        <strong style="color: var(--neon-green); font-size: 18px;">RM {{ number_format($saved->total_cost, 2) }}</strong>
+                                        <strong style="color: var(--success); font-size: 18px;">RM {{ number_format($saved->total_cost, 2) }}</strong>
                                     </div>
                                     <div style="text-align: right;">
                                         <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">Perf. Score</div>
@@ -338,14 +338,14 @@
                                 <div style="display: flex; gap: 10px;">
                                     <form action="{{ route('builder.load', $saved->id) }}" method="POST" style="flex: 1; margin: 0;">
                                         @csrf
-                                        <button type="submit" class="btn-primary" style="width: 100%; padding: 10px;">Load Build</button>
+                                        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px;">Load Build</button>
                                     </form>
                                     
-                                    <a href="{{ route('builder.compare', ['build1' => $saved->id]) }}" class="btn-secondary" style="flex: 1; padding: 10px; text-decoration: none; text-align: center; display: inline-block;">Compare</a>
+                                    <a href="{{ route('builder.compare', ['build1' => $saved->id]) }}" class="btn btn-secondary" style="flex: 1; padding: 10px; text-decoration: none; text-align: center; display: inline-block;">Compare</a>
                                     
                                     <form action="{{ route('builder.delete', $saved->id) }}" method="POST" style="margin: 0;" onsubmit="return confirm('Are you sure you want to permanently delete this build?');">
                                         @csrf
-                                        <button type="submit" class="btn-secondary" style="color: var(--neon-red); border-color: var(--neon-red); padding: 10px; height: 100%; display: flex; align-items: center; justify-content: center;" title="Delete Build">
+                                        <button type="submit" class="btn btn-secondary" style="color: var(--error); border-color: var(--error); padding: 10px; height: 100%; display: flex; align-items: center; justify-content: center;" title="Delete Build">
                                             🗑️
                                         </button>
                                     </form>
@@ -354,17 +354,17 @@
                         @endforeach
                     </div>
                 @else
-                    <div style="text-align: center; padding: 40px; background: var(--bg-dark); border-radius: 8px;">
+                    <div style="text-align: center; padding: 40px; background: var(--bg-main); border-radius: 8px;">
                         <h3 style="color: var(--text-muted);">No saved builds yet.</h3>
                         <p style="color: var(--text-muted);">Head over to the Manual Builder or Auto-Build to create your first configuration.</p>
-                        <button onclick="switchTab('manual')" class="btn-primary" style="margin-top: 15px;">Start Building</button>
+                        <button onclick="switchTab('manual')" class="btn btn-primary" style="margin-top: 15px;">Start Building</button>
                     </div>
                 @endif
             @else
-                <div style="text-align: center; padding: 40px; background: var(--bg-dark); border-radius: 8px;">
+                <div style="text-align: center; padding: 40px; background: var(--bg-main); border-radius: 8px;">
                     <h3 style="color: var(--text-muted);">Guest Workspace</h3>
                     <p style="color: var(--text-muted); margin-bottom: 20px;">Please log in or register to permanently save your PC builds across devices.</p>
-                    <a href="{{ route('login') }}" class="btn-primary" style="text-decoration: none;">Log In</a>
+                    <a href="{{ route('login') }}" class="btn btn-primary" style="text-decoration: none;">Log In</a>
                 </div>
             @endauth
         </div>

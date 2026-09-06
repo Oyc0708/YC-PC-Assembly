@@ -1,36 +1,38 @@
-<x-guest-layout>
-    <x-auth-card>
-        <x-slot name="logo">
-            <a href="/">
-                <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
-            </a>
-        </x-slot>
+<x-layout>
+    <div class="auth-container">
+        <div class="auth-card card">
+            <h2 class="auth-title auth-header">Forgot Password</h2>
 
-        <div class="mb-4 text-sm text-gray-600">
-            {{ __('Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.') }}
+            <p style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.5rem;">
+                Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.
+            </p>
+
+            <!-- Session Status -->
+            @if (session('status'))
+                <div class="mb-4" style="color: var(--success); font-weight: 500;">
+                    {{ session('status') }}
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('password.email') }}">
+                @csrf
+
+                <!-- Email Address -->
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus class="input @error('email') input-error @enderror">
+                    @error('email')
+                        <span class="error-msg">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Email Password Reset Link</button>
+            </form>
+
+            <!-- Link back to Login -->
+            <div class="text-center mt-6">
+                <a href="{{ route('login') }}" style="color: var(--text-muted); font-size: 0.875rem;">Remember your password? <span style="font-weight: 500; color: var(--accent);">Log in</span></a>
+            </div>
         </div>
-
-        <!-- Session Status -->
-        <x-auth-session-status class="mb-4" :status="session('status')" />
-
-        <!-- Validation Errors -->
-        <x-auth-validation-errors class="mb-4" :errors="$errors" />
-
-        <form method="POST" action="{{ route('password.email') }}">
-            @csrf
-
-            <!-- Email Address -->
-            <div>
-                <x-label for="email" :value="__('Email')" />
-
-                <x-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus />
-            </div>
-
-            <div class="flex items-center justify-end mt-4">
-                <x-button>
-                    {{ __('Email Password Reset Link') }}
-                </x-button>
-            </div>
-        </form>
-    </x-auth-card>
-</x-guest-layout>
+    </div>
+</x-layout>
