@@ -38,6 +38,7 @@ Route::prefix('builder')->group(function () {
     Route::post('/remove-part', [BuilderController::class, 'removePart'])->name('builder.remove');
     Route::post('/auto-build', [BuilderController::class, 'generateAutoBuild'])->name('builder.autobuild');
     Route::post('/clear', [BuilderController::class, 'clearBuild'])->name('builder.clear');
+    Route::post('/fetch-live-price', [BuilderController::class, 'fetchLivePrice'])->name('builder.fetch-live-price');
 
     // Authenticated Builder Routes
     Route::middleware('auth')->group(function () {

@@ -30,6 +30,12 @@ class ScrapeComponentPrice implements ShouldQueue
             'price_xpath'=> ".//*[contains(@class, 'price')]",
             'title_xpath'=> ".//*[contains(@class, 'product-item-link') or contains(@class, 'product-title')]",
         ],
+        'All IT Hypermarket' => [
+            'search_url' => 'https://www.allithypermarket.com.my/search?q=',
+            'card_xpath' => "//*[contains(@class, 't4s-product-info__inner') or contains(@class, 't4s-product-wrapper')]",
+            'price_xpath'=> ".//*[contains(@class, 'money')]",
+            'title_xpath'=> ".//h3[contains(@class, 't4s-product-title')]",
+        ],
     ];
 
     public function __construct(
@@ -140,6 +146,15 @@ class ScrapeComponentPrice implements ShouldQueue
             'ghz', 'mhz', 'gb', 'tb', 'w', 'hz', 'core', 'processor', 
             'edition', 'box', 'lhr', 'plus', 'gold', 'bronze', 'wifi'
         ];
+
+        $expectedWords = array_diff($expectedWords, $ignoreList);
+
+        // Filter out generic series numbers (e.g., 14000, 7000, 4000) if they appear in the database name
+        // because retailers rarely include them in the title alongside the specific model (e.g., 14400F).
+        $expectedWords = array_filter($expectedWords, function($word) {
+            if ($word === '200') return false; // Explicitly ignore Intel Core Ultra 200 series
+            return !preg_match('/^[0-9]{1,2}000$/', $word);
+        });
 
         // 4. Exact Word Boundary Check: Match tokens using \b boundaries
         foreach ($expectedWords as $word) {

@@ -17,6 +17,64 @@
             }
         }
     @endphp
+
+    <style>
+        /* Laravel Pagination UI Fix for Custom Theme */
+        nav[role="navigation"] svg {
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+        nav[role="navigation"] .hidden.sm\:flex-1.sm\:flex.sm\:items-center.sm\:justify-between {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 20px;
+        }
+        nav[role="navigation"] p {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin: 0;
+        }
+        nav[role="navigation"] .relative.z-0.inline-flex {
+            display: inline-flex;
+            gap: 4px;
+        }
+        nav[role="navigation"] a, 
+        nav[role="navigation"] span[aria-disabled] span,
+        nav[role="navigation"] span[aria-current] span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 14px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+        nav[role="navigation"] a:hover {
+            background: var(--bg-main);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        nav[role="navigation"] span[aria-current="page"] span {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+            font-weight: bold;
+        }
+        nav[role="navigation"] span[aria-disabled="true"] span {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        /* Hide mobile paginator since desktop one is forced flex */
+        nav[role="navigation"] .flex.justify-between.flex-1.sm\:hidden {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <div class="app-container">

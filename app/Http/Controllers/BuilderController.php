@@ -57,15 +57,17 @@ class BuilderController extends Controller
         $currentBuild = session('current_build', []);
 
         // Dynamic Compatibility Filter Toggle
-        $compatibilityFilter = $request->boolean('compatibility_filter', true);
+        $compatibilityFilter = $request->has('filter_submitted') 
+            ? $request->boolean('compatibility_filter') 
+            : true;
         
         if ($compatibilityFilter && !empty($currentBuild)) {
             if ($category === 'cpu' && isset($currentBuild['mobo'])) {
-                $socket = $this->validationEngine->normalizeStr($currentBuild['mobo']->socket ?? '');
-                $query->where('socket', 'LIKE', "%{$socket}%");
+                $socketNum = $this->validationEngine->cleanSocket($currentBuild['mobo']->socket ?? '');
+                $query->where('socket', 'LIKE', "%{$socketNum}%");
             } elseif ($category === 'mobo' && isset($currentBuild['cpu'])) {
-                $socket = $this->validationEngine->normalizeStr($currentBuild['cpu']->socket ?? '');
-                $query->where('socket', 'LIKE', "%{$socket}%");
+                $socketNum = $this->validationEngine->cleanSocket($currentBuild['cpu']->socket ?? '');
+                $query->where('socket', 'LIKE', "%{$socketNum}%");
             } elseif ($category === 'ram' && isset($currentBuild['mobo'])) {
                 $ramType = $this->validationEngine->normalizeStr($currentBuild['mobo']->ram_type ?? '');
                 $query->where('type', 'LIKE', "%{$ramType}%");
@@ -263,39 +265,53 @@ class BuilderController extends Controller
         $cpuQuery = Cpu::where('price', '<=', $cpuCap)
             ->when($workload === 'office', fn($q) => $q->where('has_igpu', true));
 
-        $cpu = (clone $cpuQuery)->orderBy('price', 'desc')->first();
+        $cpus = (clone $cpuQuery)->orderBy('price', 'desc')->limit(10)->get();
 
         // Fallback if cap is too restrictive
-        if (!$cpu) {
-            $cpu = Cpu::where('price', '<=', $remainingCoreBudget)
+        if ($cpus->isEmpty()) {
+            $cpus = Cpu::where('price', '<=', $remainingCoreBudget)
                 ->when($workload === 'office', fn($q) => $q->where('has_igpu', true))
                 ->orderBy('price', 'asc')
-                ->first();
+                ->limit(10)->get();
         }
 
-        if (!$cpu) {
+        if ($cpus->isEmpty()) {
             $errorMsg = $workload === 'office' 
                 ? 'No CPUs with integrated graphics found within budget allocation.' 
                 : 'No CPUs found within budget allocation.';
             throw new \Exception($errorMsg);
+        }
+
+        $cpu = null;
+        $mobo = null;
+        $moboCap = $getCoreBudgetCap('mobo', 1.15);
+
+        // Iterate through top CPUs to find one that actually has a compatible motherboard in the database
+        foreach ($cpus as $potentialCpu) {
+            $socketNum = $this->validationEngine->cleanSocket($potentialCpu->socket ?? '');
+            
+            $potentialMobo = Motherboard::where('price', '<=', $moboCap)
+                ->where('socket', 'LIKE', "%{$socketNum}%")
+                ->orderBy('price', 'desc')
+                ->first() ?? Motherboard::where('socket', 'LIKE', "%{$socketNum}%")
+                    ->where('price', '<=', $remainingCoreBudget)
+                    ->orderBy('price', 'asc')->first();
+
+            if ($potentialMobo) {
+                $cpu = $potentialCpu;
+                $mobo = $potentialMobo;
+                break;
+            }
+        }
+
+        if (!$cpu || !$mobo) {
+            throw new \Exception("Could not find any compatible CPU & Motherboard combination within budget.");
         }
         
         $build['cpu'] = $cpu;
         $totalCost += (float) $cpu->price;
         $remainingCoreBudget -= (float) $cpu->price;
         $remainingCoreWeight -= $coreWeights['cpu'];
-        $socket = $this->validationEngine->normalizeStr($cpu->socket ?? '');
-
-        // STEP 2: MOTHERBOARD
-        $moboCap = $getCoreBudgetCap('mobo', 1.15);
-        $mobo = Motherboard::where('price', '<=', $moboCap)
-            ->where('socket', 'LIKE', "%{$socket}%")
-            ->orderBy('price', 'desc')
-            ->first() ?? Motherboard::where('socket', 'LIKE', "%{$socket}%")
-                ->where('price', '<=', $remainingCoreBudget)
-                ->orderBy('price', 'asc')->first();
-
-        if (!$mobo) throw new \Exception("No compatible motherboard found for socket {$cpu->socket}.");
         
         $build['mobo'] = $mobo;
         $totalCost += (float) $mobo->price;
@@ -527,5 +543,41 @@ class BuilderController extends Controller
     {
         session()->forget('current_build');
         return redirect()->route('builder.index')->with('success', 'Your workspace has been cleared.');
+    }
+
+    public function fetchLivePrice(Request $request)
+    {
+        $request->validate([
+            'category' => 'required|string',
+            'id'       => 'required|string',
+        ]);
+
+        $category = $request->category;
+        
+        if (!array_key_exists($category, $this->modelMap)) {
+            return response()->json(['error' => 'Invalid category'], 400);
+        }
+
+        $model = $this->modelMap[$category];
+        $part = $model::findOrFail($request->id);
+
+        // Run scraper synchronously
+        \App\Jobs\ScrapeComponentPrice::dispatchSync($part, $model);
+        
+        $part->refresh(); // Reload to get newly saved price
+
+        // Also update the session so subsequent loads have the updated price
+        $build = session('current_build', []);
+        if (isset($build[$category]) && $build[$category]->id == $part->id) {
+            // Flag it as fetched so we don't keep retrying if it's permanently 0
+            $part->setAttribute('price_fetched', true);
+            $build[$category] = $part;
+            session(['current_build' => $build]);
+        }
+
+        return response()->json([
+            'price' => (float) $part->price,
+            'formatted_price' => number_format((float) $part->price, 2)
+        ]);
     }
 }

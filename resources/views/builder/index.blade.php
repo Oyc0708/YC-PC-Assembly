@@ -57,7 +57,70 @@
                                 <span style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">{{ $label }}</span><br>
                                 @if(isset($currentBuild[$key]))
                                     <strong>{{ $currentBuild[$key]->name }}</strong>
-                                    <div style="color: var(--success); font-size: 14px; margin-top: 4px;">RM {{ number_format($currentBuild[$key]->price, 2) }}</div>
+                                    @php $part = $currentBuild[$key]; @endphp
+                                    <div style="display: flex; gap: 8px; flex-wrap: wrap; font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                                        @if($key === 'cpu')
+                                            <span><strong>Cores:</strong> {{ $part->cores }}</span>
+                                            <span><strong>Socket:</strong> {{ $part->socket }}</span>
+                                            <span><strong>Base Clock:</strong> {{ $part->base_clock }} GHz</span>
+                                            <span><strong>TDP:</strong> {{ $part->tdp }}W</span>
+                                        @elseif($key === 'gpu')
+                                            <span><strong>VRAM:</strong> {{ $part->memory }} GB</span>
+                                            <span><strong>Clock:</strong> {{ $part->clock_speed }} MHz</span>
+                                            <span><strong>Length:</strong> {{ $part->length_mm }}mm</span>
+                                            <span><strong>TDP:</strong> {{ $part->tdp }}W</span>
+                                        @elseif($key === 'mobo')
+                                            <span><strong>Socket:</strong> {{ $part->socket }}</span>
+                                            <span><strong>RAM:</strong> {{ $part->ram_type }}</span>
+                                            <span><strong>Form Factor:</strong> {{ $part->form_factor }}</span>
+                                        @elseif($key === 'ram')
+                                            <span><strong>Type:</strong> {{ $part->type }}</span>
+                                            <span><strong>Capacity:</strong> {{ $part->capacity }} GB</span>
+                                            <span><strong>Speed:</strong> {{ $part->speed }} MHz</span>
+                                        @elseif($key === 'storage')
+                                            <span><strong>Type:</strong> {{ $part->type }}</span>
+                                            <span><strong>Capacity:</strong> {{ $part->capacity }} GB</span>
+                                            <span><strong>Interface:</strong> {{ $part->interface }}</span>
+                                        @elseif($key === 'psu')
+                                            <span><strong>Wattage:</strong> {{ $part->wattage }}W</span>
+                                        @elseif($key === 'case')
+                                            <span><strong>Form Factor:</strong> {{ $part->form_factor }}</span>
+                                            <span><strong>Max GPU:</strong> {{ $part->max_gpu_length_mm }}mm</span>
+                                        @elseif($key === 'cooler')
+                                            <span><strong>Max TDP:</strong> {{ $part->max_tdp }}W</span>
+                                        @endif
+                                    </div>
+                                    <div class="price-container" data-fetch-category="{{ $key }}" data-fetch-id="{{ $currentBuild[$key]->id }}">
+                                        @if($currentBuild[$key]->price > 0)
+                                            @php
+                                                // Load vendor link for static initial display
+                                                $vendorLink = $currentBuild[$key]->prices()->where('price', $currentBuild[$key]->price)->first();
+                                            @endphp
+                                            @if($vendorLink)
+                                                <a href="{{ $vendorLink->url }}" target="_blank" class="vendor-link price-val" data-raw-price="{{ $currentBuild[$key]->price }}" style="display: flex; flex-direction: column; background: var(--bg-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; text-decoration: none; margin-top: 10px; width: 160px; transition: border-color 0.2s;" onmouseover="this.style.borderColor='#555'" onmouseout="this.style.borderColor='var(--border-color)'">
+                                                    <span class="vendor-name" style="color: var(--text-main); font-size: 11px; font-weight: bold; margin-bottom: 2px;">{{ $vendorLink->vendor }}</span>
+                                                    <span class="price-text" style="color: var(--success); font-size: 14px; font-weight: bold;">RM {{ number_format($currentBuild[$key]->price, 2) }}</span>
+                                                </a>
+                                            @else
+                                                <div class="vendor-link price-val" data-raw-price="{{ $currentBuild[$key]->price }}" style="display: flex; flex-direction: column; background: var(--bg-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; margin-top: 10px; width: 160px;">
+                                                    <span class="vendor-name" style="color: var(--text-muted); font-size: 11px; font-weight: bold; margin-bottom: 2px;">MSRP / Unlisted</span>
+                                                    <span class="price-text" style="color: var(--success); font-size: 14px; font-weight: bold;">RM {{ number_format($currentBuild[$key]->price, 2) }}</span>
+                                                </div>
+                                            @endif
+                                        @elseif($currentBuild[$key]->getAttribute('price_fetched'))
+                                            <div class="vendor-link price-val" data-raw-price="0" style="display: flex; flex-direction: column; background: var(--bg-main); border: 1px solid #4a0000; padding: 8px 12px; border-radius: 6px; margin-top: 10px; width: 160px;">
+                                                <span class="vendor-name" style="color: var(--text-muted); font-size: 11px; font-weight: bold; margin-bottom: 2px;">Unavailable</span>
+                                                <span class="price-text" style="color: var(--error); font-size: 12px; font-weight: bold;">OUT OF STOCK</span>
+                                            </div>
+                                        @else
+                                            <div class="vendor-link price-val needs-fetch" data-raw-price="0" style="display: flex; flex-direction: column; background: var(--bg-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; margin-top: 10px; width: 160px; justify-content: center;">
+                                                <div style="display: flex; align-items: center; gap: 6px;">
+                                                    <svg class="animate-spin" style="width: 14px; height: 14px; color: var(--accent);" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                                    <span class="price-text" style="color: var(--text-muted); font-size: 11px; font-weight: bold;">Fetching price...</span>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
                                 @else
                                     <span style="color: var(--text-muted); font-style: italic;">No component selected</span>
                                 @endif
@@ -82,10 +145,20 @@
             <div class="summary-sidebar">
                 <div class="card">
                     <h2 style="margin-top: 0;">Build Summary</h2>
-                    <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; margin-bottom: 20px;">
+                    @php
+                        $missingPricesCount = collect($currentBuild)->filter(fn($p) => $p && $p->price <= 0)->count();
+                    @endphp
+                    <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; margin-bottom: 5px;">
                         <span>Est. Total</span>
                         <span style="color: var(--success);">RM {{ number_format($totalCost, 2) }}</span>
                     </div>
+                    @if($missingPricesCount > 0)
+                        <div style="text-align: right; font-size: 12px; color: var(--error); margin-bottom: 20px;">
+                            ⚠️ Total excludes {{ $missingPricesCount }} {{ $missingPricesCount > 1 ? 'items' : 'item' }} without pricing data
+                        </div>
+                    @else
+                        <div style="margin-bottom: 20px;"></div>
+                    @endif
 
                     <!-- SCORE GAUGE SYSTEM -->
                     @if(count($currentBuild) > 0 && isset($scores))
@@ -429,8 +502,106 @@
                         toast.style.transform = 'translateY(20px)';
                         setTimeout(() => toast.remove(), 500);
                     }
-                }, 3000);
+                }, 4000);
             });
         </script>
     @endif
+
+    <style>
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+    </style>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async function() {
+            const fetchItems = Array.from(document.querySelectorAll('.needs-fetch'));
+            
+            for (const item of fetchItems) {
+                const container = item.closest('.price-container');
+                const category = container.getAttribute('data-fetch-category');
+                const id = container.getAttribute('data-fetch-id');
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') 
+                                || document.querySelector('input[name="_token"]')?.value;
+
+                try {
+                    const response = await fetch("{{ route('builder.fetch-live-price') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken
+                        },
+                        body: JSON.stringify({ category: category, id: id })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.price > 0) {
+                        if (data.url && data.url !== '#') {
+                            const newEl = document.createElement('a');
+                            newEl.href = data.url;
+                            newEl.target = '_blank';
+                            newEl.className = 'vendor-link price-val';
+                            newEl.setAttribute('data-raw-price', data.price);
+                            newEl.style.cssText = 'display: flex; flex-direction: column; background: var(--bg-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; text-decoration: none; margin-top: 10px; width: 160px; transition: border-color 0.2s;';
+                            newEl.innerHTML = `
+                                <span class="vendor-name" style="color: var(--text-main); font-size: 11px; font-weight: bold; margin-bottom: 2px;">${data.vendor}</span>
+                                <span class="price-text" style="color: var(--success); font-size: 14px; font-weight: bold;">RM ${data.formatted_price}</span>
+                            `;
+                            newEl.onmouseover = function() { this.style.borderColor = '#555'; };
+                            newEl.onmouseout = function() { this.style.borderColor = 'var(--border-color)'; };
+                            item.replaceWith(newEl);
+                        } else {
+                            const newEl = document.createElement('div');
+                            newEl.className = 'vendor-link price-val';
+                            newEl.setAttribute('data-raw-price', data.price);
+                            newEl.style.cssText = 'display: flex; flex-direction: column; background: var(--bg-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; margin-top: 10px; width: 160px;';
+                            newEl.innerHTML = `
+                                <span class="vendor-name" style="color: var(--text-muted); font-size: 11px; font-weight: bold; margin-bottom: 2px;">MSRP / Unlisted</span>
+                                <span class="price-text" style="color: var(--success); font-size: 14px; font-weight: bold;">RM ${data.formatted_price}</span>
+                            `;
+                            item.replaceWith(newEl);
+                        }
+                        updateTotalCost();
+                    } else {
+                        const newEl = document.createElement('div');
+                        newEl.className = 'vendor-link price-val';
+                        newEl.setAttribute('data-raw-price', '0');
+                        newEl.style.cssText = 'display: flex; flex-direction: column; background: var(--bg-main); border: 1px solid #4a0000; padding: 8px 12px; border-radius: 6px; margin-top: 10px; width: 160px;';
+                        newEl.innerHTML = `
+                            <span class="vendor-name" style="color: var(--text-muted); font-size: 11px; font-weight: bold; margin-bottom: 2px;">Unavailable</span>
+                            <span class="price-text" style="color: var(--error); font-size: 12px; font-weight: bold;">OUT OF STOCK</span>
+                        `;
+                        item.replaceWith(newEl);
+                    }
+                } catch (error) {
+                    console.error('Error fetching price:', error);
+                    item.innerHTML = 'Failed to fetch price';
+                }
+            }
+
+            function updateTotalCost() {
+                let total = 0;
+                document.querySelectorAll('.price-val').forEach(el => {
+                    let price = parseFloat(el.getAttribute('data-raw-price'));
+                    if (!isNaN(price) && price > 0) {
+                        total += price;
+                    }
+                });
+                
+                // Format the total with commas
+                const formattedTotal = total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                
+                // Update the total display
+                const totalDisplay = document.querySelector('.summary-sidebar span[style*="color: var(--success)"]');
+                if (totalDisplay) {
+                    totalDisplay.innerText = 'RM ' + formattedTotal;
+                }
+            }
+        });
+    </script>
 </x-layout>

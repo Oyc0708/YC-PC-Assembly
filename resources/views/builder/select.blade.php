@@ -29,6 +29,7 @@
                             <strong style="font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase;">Build Context</strong>
                         </div>
                         
+                        <input type="hidden" name="filter_submitted" value="1">
                         <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; color: var(--success); font-weight: bold; margin-bottom: 15px;">
                             <input type="checkbox" name="compatibility_filter" value="1" {{ $compatibilityFilter ? 'checked' : '' }} onchange="this.form.submit()">
                             Compatibility Filter
@@ -41,7 +42,12 @@
                             </div>
                             <div>
                                 <span style="color: var(--text-muted); display: block;">TOTAL</span>
-                                <strong style="color: var(--success);">RM {{ number_format($totalCost, 2) }}</strong>
+                                @php
+                                    $missingPricesCount = collect($currentBuild)->filter(fn($p) => $p && $p->price <= 0)->count();
+                                @endphp
+                                <strong style="color: {{ $missingPricesCount > 0 ? 'var(--error)' : 'var(--success)' }};" title="{{ $missingPricesCount > 0 ? 'Excludes ' . $missingPricesCount . ' item(s) without pricing data' : '' }}">
+                                    RM {{ number_format($totalCost, 2) }}{{ $missingPricesCount > 0 ? '*' : '' }}
+                                </strong>
                             </div>
                             <div>
                                 <span style="color: var(--text-muted); display: block;">EST. WATT</span>
@@ -207,9 +213,18 @@
 
                                     <div style="text-align: right; min-width: 140px;">
                                         <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Best Market Price</div>
-                                        <div style="color: var(--success); font-size: 1.3rem; font-weight: bold; margin-bottom: 8px;">
-                                            RM {{ number_format($part->prices->min('price') ?? $part->price, 2) }}
-                                        </div>
+                                        @php
+                                            $displayPrice = $part->prices->min('price') ?? $part->price;
+                                        @endphp
+                                        @if($displayPrice > 0)
+                                            <div style="color: var(--success); font-size: 1.3rem; font-weight: bold; margin-bottom: 8px;">
+                                                RM {{ number_format($displayPrice, 2) }}
+                                            </div>
+                                        @else
+                                            <div style="color: var(--error); font-size: 0.9rem; font-weight: bold; margin-bottom: 8px;">
+                                                No Pricing Data Available
+                                            </div>
+                                        @endif
                                         
                                         <form action="{{ route('builder.add') }}" method="POST">
                                             @csrf
