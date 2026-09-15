@@ -575,9 +575,16 @@ class BuilderController extends Controller
             session(['current_build' => $build]);
         }
 
+        $vendorLink = $part->prices()->where('price', $part->price)->first();
+        if (!$vendorLink) {
+            $vendorLink = $part->prices()->orderBy('price', 'asc')->first();
+        }
+
         return response()->json([
             'price' => (float) $part->price,
-            'formatted_price' => number_format((float) $part->price, 2)
+            'formatted_price' => number_format((float) $part->price, 2),
+            'url' => $vendorLink ? $vendorLink->url : '#',
+            'vendor' => $vendorLink ? $vendorLink->vendor : ''
         ]);
     }
 }

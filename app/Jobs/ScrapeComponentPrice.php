@@ -48,7 +48,7 @@ class ScrapeComponentPrice implements ShouldQueue
         error_reporting(E_ALL & ~E_DEPRECATED);
 
         $cleanedName = $this->cleanSearchTerm($this->component->name);
-        $searchQuery = urlencode($cleanedName);
+        $searchQuery = urlencode($this->getOptimizedSearchQuery($this->component->name));
 
         $responses = Http::pool(function (Pool $pool) use ($searchQuery) {
             $requests = [];
@@ -111,6 +111,21 @@ class ScrapeComponentPrice implements ShouldQueue
     }
 
     /**
+     * Strips highly specific specs (like VRAM, memory type, sockets) from the search query.
+     * Retailer search engines often fail if the query is too long or if they insert words (like 'OC')
+     * between the model and the specs.
+     */
+    private function getOptimizedSearchQuery(string $name): string
+    {
+        $name = preg_replace('/\b\d{1,2}GB\b/i', '', $name); // e.g. 8GB, 12GB
+        $name = preg_replace('/\bGDDR\d[X]?\b/i', '', $name); // e.g. GDDR6, GDDR6X, GDDR7
+        $name = preg_replace('/\b(AM4|AM5|LGA\s?\d+)\b/i', '', $name); // Sockets
+        $name = preg_replace('/(\d+)mm\b/i', '$1', $name); // e.g. 360mm -> 360
+        
+        return $this->cleanSearchTerm($name);
+    }
+
+    /**
      * Exact word-boundary and modifier-aware comparison.
      * Prevents partial numeric matches and tier cross-pollination.
      */
@@ -136,7 +151,11 @@ class ScrapeComponentPrice implements ShouldQueue
             }
         }
 
-        // 3. Normalize non-alphanumeric characters to single spaces
+        // 3. Normalize common units attached directly to numbers (e.g. 360mm -> 360, 850w -> 850)
+        $expectedClean = preg_replace('/(\d+)(mm|w|ghz|mhz|hz|gb|tb)\b/i', '$1', $expectedClean);
+        $scrapedClean  = preg_replace('/(\d+)(mm|w|ghz|mhz|hz|gb|tb)\b/i', '$1', $scrapedClean);
+
+        // 4. Normalize non-alphanumeric characters to single spaces
         $normalizedExpected = preg_replace('/[^a-z0-9]+/i', ' ', $expectedClean);
         $normalizedScraped  = preg_replace('/[^a-z0-9]+/i', ' ', $scrapedClean);
 

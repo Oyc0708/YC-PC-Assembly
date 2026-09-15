@@ -103,7 +103,7 @@
                                                 </a>
                                             @else
                                                 <div class="vendor-link price-val" data-raw-price="{{ $currentBuild[$key]->price }}" style="display: flex; flex-direction: column; background: var(--bg-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; margin-top: 10px; width: 160px;">
-                                                    <span class="vendor-name" style="color: var(--text-muted); font-size: 11px; font-weight: bold; margin-bottom: 2px;">MSRP / Unlisted</span>
+                                                    <span class="vendor-name" style="color: var(--text-muted); font-size: 11px; font-weight: bold; margin-bottom: 2px;">Suggested Price</span>
                                                     <span class="price-text" style="color: var(--success); font-size: 14px; font-weight: bold;">RM {{ number_format($currentBuild[$key]->price, 2) }}</span>
                                                 </div>
                                             @endif
@@ -561,7 +561,7 @@
                             newEl.setAttribute('data-raw-price', data.price);
                             newEl.style.cssText = 'display: flex; flex-direction: column; background: var(--bg-main); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 6px; margin-top: 10px; width: 160px;';
                             newEl.innerHTML = `
-                                <span class="vendor-name" style="color: var(--text-muted); font-size: 11px; font-weight: bold; margin-bottom: 2px;">MSRP / Unlisted</span>
+                                <span class="vendor-name" style="color: var(--text-muted); font-size: 11px; font-weight: bold; margin-bottom: 2px;">Suggested Price</span>
                                 <span class="price-text" style="color: var(--success); font-size: 14px; font-weight: bold;">RM ${data.formatted_price}</span>
                             `;
                             item.replaceWith(newEl);
