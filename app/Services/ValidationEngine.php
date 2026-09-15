@@ -23,7 +23,7 @@ class ValidationEngine
         if (preg_match('/ddr\d/', $type, $matches)) {
             return $matches[0];
         }
-        return $type; 
+        return $type;
     }
 
     public function cleanSocket(string $socket): string
